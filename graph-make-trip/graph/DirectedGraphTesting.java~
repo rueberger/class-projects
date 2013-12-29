@@ -1,0 +1,160 @@
+package graph;
+
+import org.junit.Test;
+import ucb.junit.textui;
+import static org.junit.Assert.*;
+
+public class DirectedGraphTesting {
+
+    @Test
+    public void checkAdd() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        assertEquals("Edge exists", true, u.contains(v, w, 5));
+        assertEquals("Edge shouldn't exist in this direction", false, u.contains(w, v, 5));
+        assertEquals("1 edge total", 1, u.edgeSize());
+        assertEquals("2 vertices", 2, u.vertexSize());
+    }
+    
+    @Test
+    public void checkDegree() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        DirectedGraph<Integer, Integer>.Vertex y = u.add(25);
+        DirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        DirectedGraph<Integer, Integer>.Edge vy = u.add(v, y, 5);
+        DirectedGraph<Integer, Integer>.Edge xy = u.add(x, y, 5);
+        assertEquals("Wrong degree", 3, u.outDegree(v));
+        assertEquals("Wrong degree", 0, u.inDegree(v));
+        assertEquals("Wrong degree", 1, u.inDegree(w));
+        assertEquals("Wrong degree", 2, u.inDegree(y));
+        assertEquals("Wrong degree", 1, u.inDegree(x));
+    }
+
+
+    @Test 
+    public void checkEdgeRemoval() {
+             DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        DirectedGraph<Integer, Integer>.Edge wv = u.add(w, v, 5);
+        DirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        assertEquals("Edge exists", true, u.contains(v, w, 5));
+        assertEquals("Edge exists", true, u.contains (v, w, 5));
+        u.remove(vw);
+        assertEquals("Edge exists", true, u.contains (v, w, 5));
+        assertEquals("Edge has been removed", false, u.contains(v, w, 5));
+        assertEquals("Edge exists", true, u.contains(v, x, 5));
+        u.remove(vx);
+        assertEquals("Edge has been removed", false, u.contains(v, x, 5));
+    }
+
+
+    @Test
+    public void checkVertexRemoval() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20); 
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        DirectedGraph<Integer, Integer>.Edge wv = u.add(w, v, 5);
+        DirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        assertEquals("Edge exists", true, u.contains(v, w, 5));
+        assertEquals("Edge exists", true, u.contains(v, x, 5));
+        assertEquals("Edge exists", true, u.contains(w, v, 5));
+        assertEquals("3 edges exist", 3, u.edgeSize());
+        assertEquals("3 vertices exist", 3, u.vertexSize());
+        u.remove(v);
+        assertEquals("Now unconnected", 0, u.degree(w));
+        assertEquals("Now unconnected", 0, u.degree(x));
+        assertEquals("No edges exist", 0 , u.edgeSize());
+        assertEquals("2 vertices exist", 2 , u.vertexSize());
+    }
+
+    @Test 
+    public void checkVertexIterator() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        DirectedGraph<Integer, Integer>.Vertex y = u.add(25); 
+        Iteration<DirectedGraph<Integer, Integer>.Vertex> verts = u.vertices();
+        int vertCount = 0;
+        for (DirectedGraph<Integer, Integer>.Vertex unused : verts) {
+            vertCount += 1;
+        }
+        assertEquals("Wrong # of elements", u.vertexSize(), vertCount);
+    }
+    
+    @Test
+    public void checkSuccessorIterator() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        DirectedGraph<Integer, Integer>.Vertex y = u.add(25); 
+        DirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        DirectedGraph<Integer, Integer>.Edge wv = u.add(w, v, 5);
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        DirectedGraph<Integer, Integer>.Edge vy = u.add(v, y, 5);
+        DirectedGraph<Integer, Integer>.Edge xy = u.add(x, y, 5);
+        Iteration<DirectedGraph<Integer, Integer>.Vertex> successors = u.successors(v);
+        int vertCount = 0;
+        for (DirectedGraph<Integer, Integer>.Vertex unused : successors) {
+            vertCount += 1;
+        }
+        assertEquals("3 neighbors", 3, vertCount);
+        successors = u.successors(x);
+        vertCount = 0;
+        for (DirectedGraph<Integer, Integer>.Vertex unused : successors) {
+            vertCount += 1;
+        }
+        assertEquals("1 successor", 1, vertCount);
+    }
+    
+    @Test
+    public void checkEdgeIterator() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        DirectedGraph<Integer, Integer>.Vertex y = u.add(25); 
+        DirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        DirectedGraph<Integer, Integer>.Edge vy = u.add(v, y, 5);
+        DirectedGraph<Integer, Integer>.Edge xy = u.add(x, y, 5);
+        Iteration<DirectedGraph<Integer, Integer>.Edge> edges = u.edges();
+        int edgeCount = 0;
+        for (DirectedGraph<Integer, Integer>.Edge e: edges) {
+            edgeCount += 1;
+        }
+        assertEquals("Matches total edges", u.edgeSize(), edgeCount);
+    }
+    
+    @Test
+    public void checkOutgoingEdgeIterator() {
+        DirectedGraph<Integer, Integer> u = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        DirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        DirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        DirectedGraph<Integer, Integer>.Vertex y = u.add(25); 
+        DirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        DirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        DirectedGraph<Integer, Integer>.Edge vy = u.add(v, y, 5);
+        DirectedGraph<Integer, Integer>.Edge xy = u.add(x, y, 5);
+        Iteration<DirectedGraph<Integer, Integer>.Edge> edges = u.edges(v);
+        int edgeCount = 0;
+        for (DirectedGraph<Integer, Integer>.Edge e : edges) {
+            edgeCount += 1;
+        }
+        assertEquals("3 edges", 3, edgeCount);
+    }
+
+}

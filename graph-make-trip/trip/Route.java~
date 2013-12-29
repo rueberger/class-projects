@@ -1,0 +1,29 @@
+private class Route extends Weighted {
+    Route(String name, String direction, double d) {
+        _weight = d;
+        _name = name;
+        _dir = direction;
+    }
+    
+    @Override
+    double weight() {
+        return _weight;
+    }
+    
+    /** Returns my name. */
+        String name() {
+            return _name;
+        }
+
+        /** Returns my direction. */
+        String direction() {
+            return _dir;
+        }
+
+        /** The weight. */
+        double _weight;
+        /** The name of this route. */
+        String _name;
+        /** One of the four allowed directions. */ 
+        String _dir;
+    }

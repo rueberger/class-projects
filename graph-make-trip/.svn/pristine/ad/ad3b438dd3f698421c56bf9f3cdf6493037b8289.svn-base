@@ -1,0 +1,224 @@
+package graph;
+
+import java.util.Queue;
+import java.util.LinkedList;
+
+/** A depth-first traversal of a graph.  One typically specializes
+ *  this class by overriding the Visit methods, as needed. By default,
+ *  no action is taken on any vertex or edge.  A Visit method may
+ *  throw a RejectException or a StopException to alter the course of a
+ *  traversal.
+ *  @author Andrew Berger
+ */
+public class DepthFirst<VLabel, ELabel> {
+
+
+    /** Perform a depth-first traversal of G over all vertices reachable
+     *  from V, or as modified by one of the visit methods throwing an
+     *  exception. */
+    public void traverse(Graph<VLabel, ELabel> G, Vertex<VLabel> v) {   
+        _graph = G;
+        _marks.clear();
+        continueTraversing(v);
+         
+    }
+
+    /** Continue the previous traversal starting from V.
+     *  Continuing a traversal means that we do not traverse
+     *  vertices or edges that have been traversed previously. */
+    public void continueTraversing(Vertex<VLabel> v) {
+        _fringe.clear();
+        _finalVertex = null;
+        _finalEdge = null;
+        boolean explored = false;
+        try {
+            if (!isMarked(v) && !isExplored(v) && preVisitation(v)) {
+                mark(v);
+                _fringe.push(v);
+            } 
+            Vertex<VLabel> curr = null;
+            Vertex<VLabel> last = null;
+            while (_fringe.peek() != null) {
+                //assignment error?
+                last = curr;
+                curr = _fringe.peek();
+                if (last != null) {
+                    
+                }
+                explored = true;
+                for (Edge<VLabel, ELabel> e : _graph.edges(curr)) {
+                    if (!isMarked(e) && preVisitation(e, curr)) {
+                        explored = false;
+                        mark(e);
+                        Vertex<VLabel> w = e.getV(curr);
+                        if (!isMarked(w) && !isExplored(w) && preVisitation(v)) {
+                            mark(w);
+                            _fringe.push(w);
+                            _edges.push(e);
+                            break;
+                        }
+                    }
+                }
+                if (explored == true) {
+                    explored(curr);     
+                    Vertex<VLabel> discarded = _fringe.pop();
+                    Edge<VLabel, ELabel> backEdge = _edges.pop();
+                    postVisitation(backEdge, curr);
+                    postVisitation(curr);
+                }
+            }
+        
+        } catch (StopException e) {
+            /* Stop execution */
+        }
+    }
+
+
+    /** If the traversal ends prematurely, returns the Vertex argument to
+     *  preVisit or postVisit that caused a Visit stop the traversal.
+     *  Otherwise, returns null. */
+    public Vertex<VLabel> finalVertex() {
+        return _finalVertex;
+    }
+
+    /** If the traversal ends prematurely, returns the Edge argument to
+     *  preVisit or postVisit that caused a Visit routine to stop the
+     *  traversal. If it was not an edge that caused termination,
+     *  returns null. */
+    public Edge<VLabel, ELabel> finalEdge() {
+        return _finalEdge;
+    }
+
+    /** Returns the graph currently being traversed.  Undefined if no traversal
+     *  is in progress. */
+    protected Graph<VLabel, ELabel> theGraph() {
+        //undefined???
+        return _graph;
+    }
+
+    /** Method to be called on the first visit to vertex V in
+     *  a traversal, before visiting the unvisited successors
+     *  of V.  If this routine throws a StopException, the traversal ends.
+     *  If it throws a RejectException, outgoing edges are not considered.
+     *  The default does nothing.  */
+    protected void preVisit(Vertex<VLabel> v) {
+    }
+
+    private boolean preVisitation(Vertex<VLabel> v) {
+        try {
+            preVisit(v);
+            return true;
+        } catch (StopException e) {
+                _finalVertex = v;
+                throw e;
+        } catch (RejectException e) {
+            return false;
+        }
+        
+    } 
+
+    private void postVisitation(Vertex<VLabel> v) {
+        try {
+            postVisit(v); 
+        } catch (StopException e) {
+            _finalVertex = v;
+            throw e;
+        } catch (RejectException e) {
+            /* Do nothing.*/
+        }       
+    }
+    
+    private boolean preVisitation(Edge<VLabel, ELabel> e, Vertex<VLabel> v) {
+        try {
+            preVisit(e, v);
+            return true;
+        }
+        catch (StopException e) {
+            _finalVertex = v;
+            _finalEdge = e;
+            throw e;
+        } catch (RejectException e) {
+            return false;
+        } 
+    } 
+
+    private void postVisitation(Edge<VLabel, ELabel> e, Vertex<VLabel> v) {
+        try {
+            postVisit(e, v);
+        } catch (StopException e) {
+            _finalVertex = v;
+            _finalEdge = e;
+            throw e;
+        } catch (RejectException e) {
+            /* Do nothing */
+        }
+    } 
+
+    /** Method to be called on leaving vertex V after visiting all its
+     *  unvisited successors in a traversal.  If this routine throws
+     *  a StopException, the traversal ends.  A RejectException has no effect.
+     *  The default simply returns true. */
+    protected void postVisit(Vertex<VLabel> v) {
+    }
+
+    /** Method to be called when traversing an edge E from vertex V0
+     *  during a traversal.  If this routine throws a StopException,
+     *  the traversal ends. If it throws a RejectException, the node at the
+     *  other end of the edge is not traversed.  The default does nothing. */
+    protected void preVisit(Edge<VLabel, ELabel> e, Vertex<VLabel> v0) {
+    }
+
+    /** Method to be called after traversing the edge E from V0
+     *  and finishing the traversal from the other incident vertex.
+     *  If this routine throws a StopException, the traversal ends.
+     *  A RejectException has no effect. The default does nothing. */
+    protected void postVisit(Edge<VLabel, ELabel> e, Vertex<VLabel> v0) {
+    }
+
+    /** Returns true iff V is marked.*/
+    private boolean isMarked(Vertex<Vlabel> v) {
+        return _marks.get(v.getId());
+    }
+    
+    /** Returns true iff E is marked. */
+    private boolean isMarked(Edge<VLabel, ELabel> e) {
+        return _marks.get(e.getId());
+    }
+
+    /** Marks vertice V. */
+    private void mark(Vertex<VLabel> v) {
+        _marks.set(v.getId());
+    }
+
+    /** Marks edge E.*/
+    private void mark(Edge<VLabel, ELabel> e) {
+        _marks.get(e.getId());
+    }
+    
+    /** True iff vertex V has been explored.*/
+    private boolean isExplored(Vertex<VLabel> v) {
+        return _explored.get(v.getId());
+    }
+
+    /** Sets that vertex V has been explored.*/
+    private void explore(Vertex<VLabel> v) {
+        _explored.set(v.getId());
+    }
+
+    /** The Vertex (if any) that terminated the last traversal. */
+    private Vertex<VLabel> _finalVertex;
+    /** The Edge (if any) that terminated the last traversal. */
+    private Edge<VLabel, ELabel> _finalEdge;
+    /** The graph I am currently traversing */
+    private Graph<VLabel, Elabel> _graph;
+    /** Vertices that need processing. */
+    private LinkedList<Graph<VLabel, ELabel>.Vertice> _fringe = new LinkedList<Graph<VLabel, ELabel>.Vertice>();
+    /** Stack of edges that have been traversed.
+     * The edge at the front the stack at any time is the edge that was traversed
+     *  to get to the vertice at the front of fringe*/
+    private LinkedList<Graph<VLabel, ELabel>.Edge> _edges = new LinkedList<Graph<VLabel, ELabel>.Edge>();
+    /** Element at i true iff Vertex/edge i has been traversed. */
+    private BitSet _marks = new BitSet();
+    /** Element at i ture iff all of the edges of Vertex i have been traveresed. */
+    private Bitset _explored = new BitSet();
+}

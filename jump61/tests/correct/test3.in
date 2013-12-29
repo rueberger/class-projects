@@ -1,0 +1,12 @@
+# Fill this in.
+java -ea jump61.Main
+None
+===#1===
+size 2
+set 1 1 2 r
+set 1 2 2 r
+manual blue
+start
+1 1
+%er
+===#2===

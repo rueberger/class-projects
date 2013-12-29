@@ -1,0 +1,173 @@
+package make;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.BitSet;
+
+import graph.Graph;
+import graph.Traversal;
+
+import java.io.PrintWriter;
+
+/** Initial class for the 'make' program.
+ *  @author Andrew Berger 
+ */
+public final class Main {
+
+    /** Entry point for the CS61B make program.  ARGS may contain options
+     *  and targets:
+     *      [ -f MAKEFILE ] [ -D FILEINFO ] TARGET1 TARGET2 ...
+     */
+    public static void main(String... args) {
+        String makefileName;
+        String fileInfoName;
+
+        if (args.length == 0) {
+            usage();
+        }
+
+        makefileName = "Makefile";
+        fileInfoName = "fileinfo";
+
+        int a;
+        for (a = 0; a < args.length; a += 1) {
+            if (args[a].equals("-f")) {
+                a += 1;
+                if (a == args.length) {
+                    usage();
+                } else {
+                    makefileName = args[a];
+                }
+            } else if (args[a].equals("-D")) {
+                a += 1;
+                if (a == args.length) {
+                    usage();
+                } else {
+                    fileInfoName = args[a];
+                }
+            } else if (args[a].startsWith("-")) {
+                usage();
+            } else {
+                break;
+            }
+        }
+
+        ArrayList<String> targets = new ArrayList<String>();
+
+        for (; a < args.length; a += 1) {
+            targets.add(args[a]);
+        }
+
+        make(makefileName, fileInfoName, targets);
+    }
+
+    /** Carry out the make procedure using MAKEFILENAME as the makefile,
+     *  taking information on the current file-system state from FILEINFONAME,
+     *  and building TARGETS, or the first target in the makefile if TARGETS
+     *  is empty.
+     */
+    private static void make(String makefileName, String fileInfoName,
+                             List<String> targets) {
+        Scanner makeFile = new Scanner(
+                   new FileReader(new File(makeFileName)));
+        Scanner fileInfo = new Scanner(
+                   new FileReader(new File(fileInfoName)));
+        GraphBuilder maker = GraphBuilder(makeFile, _err);
+        DirectedGraph<Target, String> makeMap = maker.buildGraph();
+        int sysTime = maker.systemTime();
+        CycleCheck<Target, String> cycler = new CycleCheck<Target, String>();
+        Builder<Target, String> builder = new Builder(sysTime, cycler);
+        for (String target : targets) {
+            make(makeMap, builder, target);
+        }
+    }
+
+    private static void make(Graph<Target, String> G, Builder<Target, String> builder, String target) {
+        builder.breadthFirstTraverse(G, target);
+    }
+
+    /** The traversal applying our make procedure.*/
+    private class Builder<Target, String> extends Traversal<Target, String> {
+        /** A new Builder.*/
+        Builder(int systemTime, CycleCheck<Target, String> cycler) {
+            _sysTime = systemTime;
+            _cycler = cycler;
+                
+        }
+
+        protected void postVisit(Graph<Target, String>.Vertex v) {
+            _cycler.reset();
+            _cycler.depthFirstTraverse(theGraph(), v);
+            Target t = v.getLabel();
+            if (t.changed() < t.youngest()) {
+                _sysTime += 1;
+                _out.print(t.execute(_sysTime));
+            } 
+            if (!t.isExtant()) {
+                _sysTime += 1;
+                _out.print(t.execute(_sysTime));
+            }
+            _out.flush();
+        }
+        
+        /** The current time.
+         *  All new objects must be older than this time. */
+        int _sysTime;
+        /** Checks for cycles and gets ancestor times. */
+        CycleCheck<Target, String> _cycler;
+
+    }
+    
+    /** Class that checks for cycles and sets youngest ancestor. */
+    private class CycleCheck<Target, String> extends Traversal<Target, String> {
+        /** A new cycleCheck. */
+        CycleCheck() {
+            _visited = new BitSet();
+            _youngestAncestor = Integer.MIN_VALUE;
+        }
+
+        /** Reinitializes this. */
+        public void reset() {
+            _visited = new BitSet();
+            _youngestAncestor = Integer.MIN_VALUE;
+        }
+
+        @Override 
+        protected void visit(Graph<Target, String>.Vertex v) {
+            _visited.set(v.getId());
+            for (Graph<Target, String>.Vertex w : theGraph().successors(v)) {
+                if (_visited.get(w.getId())) {
+                    throw new MakeFormatException("Cyclic dependency detected");
+                }
+            }
+        }
+
+        @Override 
+        protected void postVisit(Graph<Target, String>.Vertex v) {
+            Target t = v.getLabel();
+            if (t.youngest() > _youngestAncestor) {
+                _youngestAncestor = t.youngest();
+            } else {
+                t.setAncestor(_youngestAncestor);
+            }
+        }
+
+        /** Ind true iff the vertex with that id has been visited.*/
+        BitSet _visited;
+        /** The change date of the youngest ancestor.*/
+        int _youngestAncestor;
+        
+    }
+    
+
+    /** Print a brief usage message and exit program abnormally. */
+    private static void usage() {
+        // FILL THIS IN
+        System.exit(1);
+    }
+
+    /** The standard error output. */
+    private static PrintWriter _err = new PrintWriter(System.err);
+    /** The standard output.*/
+    private static PrintWriter _out = new PrintWriter(System.out);
+}

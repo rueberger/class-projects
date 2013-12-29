@@ -1,0 +1,284 @@
+package graph;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.PriorityQueue;
+
+/** An adjacency matrix implementation.
+ *  Used by directed and undirected
+ * @author Andrew Berger
+ */
+abstract class AdjMat<VLabel, ELabel> extends Graph<VLabel, ELabel> {
+    
+    
+    @Override 
+    public int vertexSize() {
+        return _vertices.size();
+    }
+
+    @Override
+    public int edgeSize() {
+        return _edgeMap.size();
+    }
+
+    @Override
+    public boolean isDirected() {
+        return !_undirected;
+    }
+
+    @Override
+    public int outDegree(Vertex v) {
+        int ind = _vertMap.get(v);
+        int outDeg = 0;
+        //i am assuming down is outgoing
+        for (int i = 0; i < _edges.size(); i++) {
+            if (_edges.get(ind).get(i) != null) {
+                outDeg += 1;
+            }
+        }
+        return outDeg;
+    }
+    
+    @Override
+    public int inDegree(Vertex v) {
+        int ind = _vertMap.get(v);
+        int inDeg = 0;
+        //across is ingoing
+        for (int i = 0; i < _edges.size(); i++) {
+            if (_edges.get(i).get(ind) != null) {
+                inDeg += 1;
+            }
+        }
+        return inDeg;
+    }
+
+    @Override
+    public boolean contains(Vertex u, Vertex v) {
+        int from = _vertMap.get(u);
+        int to = _vertMap.get(v);
+        if (_edges.get(from).get(to) != null) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean contains(Vertex u, Vertex v, ELabel label) {
+        int from = _vertMap.get(u);
+        int to = _vertMap.get(v);
+        if (contains(u, v)) {
+            if (_edges.get(from).get(to).getLabel() == label) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public Vertex add(VLabel label) {
+        Vertex v = new Vertex(label, _idIncr);
+        _idIncr += 1;
+        increaseSize(1);
+        _vertices.add(v);
+        _vertMap.put(v, size() - 1);
+        return v;
+    }
+
+    @Override 
+    public Edge add(Vertex from, Vertex to, ELabel label) {
+        int fromInd = _vertMap.get(from);
+        int toInd = _vertMap.get(to);
+        Edge e = new Edge(from, to, label, _idIncr);
+        _idIncr += 1;
+        addEdge(fromInd, toInd, e);
+        return e;
+    } 
+    
+
+    /** Internal method for making edge E between vertices FROM and TO .
+     *  Need fast mapping from vertices to indices */
+    private void addEdge(int from, int to, Edge e) {
+        _edges.get(from).set(to, e);
+        _edgeMap.put(e, new int [] {from, to});
+        if (_undirected) {
+            _edges.get(to).set(from, e);
+        }
+    }
+
+    @Override 
+    public void remove(Edge e) { 
+        if (_edgeMap.get(e) != null) {
+            int[] coord = _edgeMap.get(e);
+            int from = coord[0];
+            int to = coord[1];
+            _edges.get(from).set(to, null);
+            _edgeMap.remove(e);
+            if (_undirected) {
+                _edges.get(to).set(from, null);
+            }
+        }
+    }
+
+    @Override 
+    public void remove(Vertex v) {
+        removeFromEdgeMat(v);
+        removeFromVertexList(v);
+    }
+
+    @Override
+    public void remove(Vertex v1, Vertex v2) {
+        if (_vertMap.get(v1) != null & _vertMap.get(v2)) {
+            int from = _vertMap(v1);
+            int to = _vertMap(v2);
+            if (_edges.get(from).get(to) != null) {
+                remove(_edges.get(from).get(to));
+            } 
+            if (_edges.get(to).get(from) != null) {
+                remove(_edges.get(to).get(from));
+            }
+        }
+    }
+
+    @Override 
+    public Iteration<Vertex> vertices() {
+        return iteration(_vertices.iterator());
+    }
+
+    @Override
+    public Iteration<Vertex> sucessors(Vertex v) {
+        List<Vertex> successors = new ArrayList<Vertex>();
+        if (_vertMap.get(v) != null) {
+            int ind = _vertMap.get(v);
+            for (int i = 0; i < _edges.size(); i++) {
+                if  (_edges.get(ind).get(i) != null) {
+                    successors.add(_vertices.get(i));
+                }
+            }
+        }
+        return iteration(successors.iterator());
+    }
+
+    @Override
+    public Iteration<Vertex> predecessors(Vertex v) {
+        List<Vertex> predecessors = new ArrayList<Vertex>();
+        if (_vertMap.get(v) != null) {
+            int ind = _vertMap.get(v);
+            for (int i = 0; i < _edges.size(); i++) {
+                if (_edges.get(i).get(ind) != null) {
+                    predecessors.add(_vertices.get(i));
+                }
+            }
+        }
+        return iteration(predcessors.iterator());
+    }
+
+    @Override
+    public Iteration<Edge> edges() {
+        _orderedEdges.clear();
+        for (int i = 0; i < _edges.size(); i++ ) {
+            for (int j = 0; j < _edges.size(); j++) {
+                if (_edges.get(i).get(j) != null) {
+                    _orderedEdges.add(_edges.get(i).get(j));
+                }
+            }
+        }
+        return iteration(_orderedEdges.iterator());
+    }
+
+    @Override 
+    public Iteration<Edge> outEdges(Vertex v) {
+        _orderedEdges.clear();
+        if (_vertMap.get(v) != null) {
+            int ind = _vertMap.get(v);
+            for (int i = 0; i < _edges.size(); i++) {
+                if (_edges.get(ind).get(i) != null) {
+                    _orderedEdges.add(_edges.get(ind).get(i));
+                }
+            }
+        }
+        return iteration(_orderedEdges.iterator());
+    }
+
+    public Iteration<Edge> inEdges(Vertex v) {
+        _orderedEdges.clear();
+        if (_vertMap.get(v) != null) {
+            int ind = _vertMap.get(v);
+            for (int i = 0; i < _edges.size(); i++) {
+                if (_edges.get(i).get(ind) != null) {
+                    _orderedEdges.add(_edges.get(i).get(ind));
+                }
+            }
+        }
+        return iteration(_orderedEdges.iterator());
+    }
+
+    @Override 
+    public void orderEdges(Comparator<ELabel> comparator) {
+        _orderedEdges = new PriorityQueue(11, comparator);
+    }
+    
+    /** Adds NUM new spots to _ADJ, initally all zero.
+     *  Ensures _ADJ is square 
+     *  Does the same to _EDGES
+     *  IMPORTANT: Does not modify _VERTICES*/
+    private void increaseSize(int num) {
+        for (int k = 0; k < num; k += 1) {
+            _edges.add(new ArrayList<Edge>());
+        }
+    }
+
+    /** Returns the current size.*/
+    private int size() {
+        assert _vertices.size() == _edges.size();
+        return _edges.size();
+    }        
+    
+    /** Subroutine of remove V.
+     * Removes V from _VERTICES at pos IND, then shifts the
+     * positions of the i+1..n] vertices in the hastable my -1.*/
+    private void removeFromVertexList(Vertex v) {
+        int ind = _vertices.indexOf(v);
+        for (int i = ind + 1; i < _vertices.size(); i++) {
+            _vertMap.put(_vertices.get(i), i - 1);
+        } 
+        _vertices.remove(v);
+    }
+
+    /** Subroutine of remove V.
+     * CALL THIS BEFORE REMOVEFROMVERTEXLIST
+     * Takes out a collumn and row in V.*/
+    private void removeFromEdgeMat(Vertex v) {
+        int ind = _vertices.indexOf(v);
+        for (int i = 0; i < _edges.size(); i++) {
+            if (_edges.get(i).get(ind) != null) {
+                remove(_edges.get(i).get(ind));
+            }
+            if (_edges.get(ind).get(i) != null) {
+                remove(_edges.get(ind).get(i));
+            }
+        }
+        _edges.remove(ind);
+        for (int j = 0; j < _edges.size(); j++) {
+            _edges.get(j).remove(ind);
+        }
+    }
+     
+
+    /** Holds vertice labels. Is of dimension SIZE.*/
+    private List<Vertex> _vertices = new ArrayList<Vertex>();
+    /** Fast mapping from vertice to its indice. */
+    private HashMap<Vertex, Integer> _vertMap = new HashMap<Vertex, Integer>();
+    /** Holds edge labels. Each list of dimension SIZE. */
+    private List<List<Edge>> _edges = new ArrayList<List<Edge>>();
+    /** Fast mapping from edge to indices. */
+    private HashMap<Edge, int[]> _edgeMap = new HashMap<Edge, int[]>();
+    /** An ordered set of edges. */
+    private PriorityQueue<Edge> _orderedEdges = new PriorityQueue();
+    /** True iff I am implementing an undirected graph.*/
+    private boolean _undirected;
+    /** Increment every time a new vertex or edge is created to guarantee a unique id.*/
+    private int _idIncr = 0;
+}
+
+

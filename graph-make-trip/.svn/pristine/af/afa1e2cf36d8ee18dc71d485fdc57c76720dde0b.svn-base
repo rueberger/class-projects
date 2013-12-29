@@ -1,0 +1,19 @@
+package trip;
+
+public class EuclideanDistancer<Place> implements Distancer<Place> {
+    /** A new distancer. */
+    EuclideanDistancer() {
+    }
+
+ 
+    /** Returns the distance from HERE to THERE. */
+    @Override
+    double dist(Place here, Place there) {
+        double xsum = here.coords()[0] - there.coords()[0];
+        double ysum = here.coords()[1] - there.coords()[1];
+        xsum = Math.pow(xsum, 2);
+        ysum = Math.pow(ysum, 2);
+        double dotted = xsum + ysum;
+        return Math.pow(dotted, .5);
+    }
+}

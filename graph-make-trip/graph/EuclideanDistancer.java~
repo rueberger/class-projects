@@ -1,0 +1,12 @@
+package trip;
+
+public class EuclideanDistancer<Place> implements Distancer<Place> {
+    /** A new distancer. */
+    EuclideanDistancer() {
+    }
+
+    /** Returns the distance from HERE to THERE.*?
+    double dist(Place here, Place there) {
+        
+    }
+}

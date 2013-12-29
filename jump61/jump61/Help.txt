@@ -1,0 +1,32 @@
+Commands are not sensitive to case
+
+Please be easy on the developer and don't try crazy things he hasn't
+had much sleep
+
+clear: clears
+
+start: begin taking moves
+
+quit: exit to terminal
+
+auto [RED|BLUE]: the color you type becomes an algorithm
+
+manual [RED|BLUE]: you control the player you type
+
+set R C N [RED|BLUE]: R: a row 1 - board size
+                      C: a col 1 - board size
+                      N: spots
+                      sets the spot you chose to N
+
+dump: gets the debug representation
+
+play moves by typing R C
+
+eg 1 2
+
+
+that's right, there's no way to examine the board state! jump61 is an
+exercise in mental spot jumping. I hope you have a sharp memory. The
+real game is how many times you need to call dump to win
+
+

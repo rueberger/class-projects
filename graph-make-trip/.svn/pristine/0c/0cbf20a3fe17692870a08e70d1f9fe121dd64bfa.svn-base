@@ -1,0 +1,45 @@
+package make;
+
+/** The VLabel class for make.
+ *  @author Andrew Berger*/
+public class Target {
+    
+    /** A new Target at CURRTIME executing RULE.
+     *  Starts at time 1.*/
+    Target(String name, String rule) {
+        _name = name;
+        _rule = rule;
+        _lastChanged = changed;
+    }
+
+    /** Returns our commands and sets CURRTIME. */
+    public String execute(int currTime) {
+        _lastChanged = currTime;
+        return _rule;
+    }
+
+    /** Set change date to TIME.*/
+    public void setTime(int time) {
+        _lastChanged = time;
+    }
+    
+    /** Sets that I exist.*/
+    public void exists() {
+        _exists = true;
+    }
+
+    /** Returns true iff I have been built.*/
+    public boolean isExtant() {
+        return _exists;
+    }
+
+    /** My name.*/
+    private String _name;
+    /** Last time I was modified.*/
+    private int _lastChanged;
+    /** The rule I execute.*/
+    private String _rule;
+    /** True if I have been built.*/
+    private boolean _exists;
+
+}

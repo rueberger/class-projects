@@ -1,0 +1,370 @@
+package graph;
+
+import java.util.Comparator;
+import java.util.BitSet;
+import java.util.Queue;
+import java.util.ArrayDeque;
+import java.util.PriorityQueue;
+
+/** Implements a generalized traversal of a graph.  At any given time,
+ *  there is a particular set of untraversed vertices---the "fringe."
+ *  Traversal consists of repeatedly removing an untraversed vertex
+ *  from the fringe, visting it, and then adding its untraversed
+ *  successors to the fringe.  The client can dictate an ordering on
+ *  the fringe, determining which item is next removed, by which kind
+ *  of traversal is requested.
+ *     + A depth-first traversal treats the fringe as a list, and adds
+ *       and removes vertices at one end.  It also revisits the node
+ *       itself after traversing all successors by calling the
+ *       postVisit method on it.
+ *     + A breadth-first traversal treats the fringe as a list, and adds
+ *       and removes vertices at different ends.  It also revisits the node
+ *       itself after traversing all successors as for depth-first
+ *       traversals.
+ *     + A general traversal treats the fringe as an ordered set, as
+ *       determined by a Comparator argument.  There is no postVisit
+ *       for this type of traversal.
+ *  As vertices are added to the fringe, the traversal calls a
+ *  preVisit method on the vertex.
+ *
+ *  Generally, the client will extend Traversal, overriding the visit,
+ *  preVisit, and postVisit methods, as desired (by default, they do nothing).
+ *  Any of these methods may throw StopException to halt the traversal
+ *  (temporarily, if desired).  The preVisit method may throw a
+ *  RejectException to prevent a vertex from being added to the
+ *  fringe, and the visit method may throw a RejectException to
+ *  prevent its successors from being added to the fringe.
+ *  @author Andrew Berger
+ */
+public class Traversal<VLabel, ELabel> {
+    
+    /** Perform a traversal of G over all vertices reachable from V.
+     *  ORDER determines the ordering in which the fringe of
+     *  untraversed vertices is visited.  The effect of specifying an
+     *  ORDER whose results change as a result of modifications made during the
+     *  traversal is undefined. */
+    public void traverse(Graph<VLabel, ELabel> G,
+                         Graph<VLabel, ELabel>.Vertex v,
+                         final Comparator<VLabel> order) {
+        _fringe = new OrderedFringe<Graph<VLabel, ELabel>.Vertex>(new Comparator<Graph<VLabel, ELabel>.Vertex>(){
+                public int compare(Graph<VLabel, ELabel>.Vertex v1, Graph<VLabel, ELabel>.Vertex v2) {
+                    return order.compare(v1.getLabel(), v2.getLabel());
+                }
+            });
+        _graph = G;
+        _marks.clear();
+        continueTraversing(v);
+    }
+    
+    /** Performs a depth-first traversal of G over all vertices
+     *  reachable from V.  That is, the fringe is a sequence and
+     *  vertices are added to it or removed from it at one end in
+     *  an undefined order.  After the traversal of all successors of
+     *  a node is complete, the node itself is revisited by calling
+     *  the postVisit method on it. */
+    public void depthFirstTraverse(Graph<VLabel, ELabel> G,
+                                   Graph<VLabel, ELabel>.Vertex v) {
+        _fringe = new LIFO<Graph<VLabel, ELabel>.Vertex>();
+        _graph = G;
+        _marks.clear();
+        continueTraversing(v);
+    }
+
+    /** Performs a breadth-first traversal of G over all vertices
+     *  reachable from V.  That is, the fringe is a sequence and
+     *  vertices are added to it at one end and removed from it at the
+     *  other in an undefined order.  After the traversal of all successors of
+     *  a node is complete, the node itself is revisited by calling
+       *  the postVisit method on it. */
+    public void breadthFirstTraverse(Graph<VLabel, ELabel> G,
+                                     Graph<VLabel, ELabel>.Vertex v) {
+        _fringe = new FIFO<Graph<VLabel, ELabel>.Vertex>();
+        _graph = G;
+        _marks.clear();
+        continueTraversing(v);
+    }
+
+    /** Continue the previous traversal starting from V.
+     *  Continuing a traversal means that we do not traverse
+     *  vertices that have been traversed previously. */
+    public void continueTraversing(Graph<VLabel, ELabel>.Vertex v) {
+        _finalVertex = null;
+        _finalEdge = null;
+        _fringe.clear();
+         boolean explored = false;
+        try {
+            if (!isMarked(v) && !isExplored(v) && visitation(v)) {
+                mark(v);
+                _fringe.push(v);
+            }
+            Graph<VLabel, ELabel>.Vertex curr = null;
+            while (_fringe.peek() != null) {
+                curr = _fringe.pop();
+                if (isExplored(curr)) { 
+                    postVisitation(curr);
+                } else if (visitation(curr)) {
+                    explored = true;
+                    for (Graph<VLabel, ELabel>.Edge e: _graph.edges(curr)) {
+                        if (!isMarked(e) && preVisitation(e, curr)) {
+                            explored = false;
+                            mark(e);
+                            Graph<VLabel, ELabel>.Vertex w = e.getV(curr);
+                            if (!isMarked(w) && !isExplored(w)) {
+                                mark(w);
+                                _fringe.push(w);
+                                break;
+                            }
+                        }
+                    }
+                    if (explored == true) {
+                        explore(curr);
+                    }
+                    _fringe.push(curr);
+                } 
+            }
+        } catch (StopException e)  {
+            /* Do nothing. */
+        }
+    }
+
+    /** If the traversal ends prematurely, returns the Vertex argument to
+     *  preVisit, visit, or postVisit that caused a Visit routine to
+     *  throw StopException.  Otherwise, returns null. */
+    public Graph<VLabel, ELabel>.Vertex finalVertex() {
+        return _finalVertex;
+    }
+
+    /** If the traversal ends prematurely, returns the Edge argument to
+     *  preVisit that caused a Visit routine to throw a StopException. If it
+     *  was not an edge that caused termination, returns null. */
+    public Graph<VLabel, ELabel>.Edge finalEdge() {
+        return _finalEdge;
+    }
+
+    /** Returns the last graph argument to a traverse routine, or null if none
+     *  of these methods have been called. */
+    protected Graph<VLabel, ELabel> theGraph() {
+        return _graph;
+    }
+
+    /** Method to be called when adding the node at the other end of E from V0
+     *  to the fringe. If this routine throws a StopException,
+     *  the traversal ends.  If it throws a RejectException, the edge
+     *  E is not traversed. The default does nothing.
+     */
+    protected void preVisit(Graph<VLabel, ELabel>.Edge e,
+                            Graph<VLabel, ELabel>.Vertex v0) {
+    }
+
+    /** Method to be called when visiting vertex V.  If this routine throws
+     *  a StopException, the traversal ends.  If it throws a RejectException,
+     *  successors of V do not get visited from V. The default does nothing. */
+    protected void visit(Graph<VLabel, ELabel>.Vertex v) {
+    }
+
+
+    /** Method to be called immediately after finishing the traversal
+     *  of successors of vertex V in pre- and post-order traversals.
+     *  If this routine throws a StopException, the traversal ends.
+     *  Throwing a RejectException has no effect. The default does nothing.
+     */
+    protected void postVisit(Graph<VLabel, ELabel>.Vertex v) {
+    }
+
+    /** Returns true iff preVisit V works. Throws errors.*/
+    private boolean preVisitation(Graph<VLabel, ELabel>.Edge e,
+                            Graph<VLabel, ELabel>.Vertex v0) { 
+        try {
+            preVisit(e, v0);
+            return true;
+        } catch (RejectException excp) {
+            return false;
+        } catch (StopException excp) {
+            _finalVertex = v0;
+            _finalEdge = e;
+            throw excp;
+        }
+    }
+
+    /** Returns true iff visit V works. Throws errors.*/
+    private boolean visitation(Graph<VLabel, ELabel>.Vertex v) {
+        try {
+            visit(v);
+            return true;
+        } catch (RejectException excp) {
+            return false;
+        } catch (StopException excp) {
+            _finalVertex = v;
+            throw excp;
+        }
+    }
+
+    /** PostVisits V and handles errors. */
+    private void postVisitation(Graph<VLabel, ELabel>.Vertex v) {
+        try {
+            postVisit(v);
+        } catch (RejectException excp) {
+            /* Do nothing. */
+        } catch (StopException excp) {
+            _finalVertex = v;
+            throw excp;
+        }
+    }
+    
+    /** Returns true iff V is marked.*/
+    private boolean isMarked(Graph<VLabel, ELabel>.Vertex v) {
+        return _marks.get(v.getId());
+    }
+    
+    /** Returns true iff E is marked. */
+    private boolean isMarked(Graph<VLabel, ELabel>.Edge e) {
+        return _marks.get(e.getId());
+    }
+
+    /** Marks vertice V. */
+    private void mark(Graph<VLabel, ELabel>.Vertex  v) {
+        _marks.set(v.getId());
+    }
+
+    /** Marks edge E.*/
+    private void mark(Graph<VLabel, ELabel>.Edge e) {
+        _marks.get(e.getId());
+    }
+    
+    /** True iff vertex V has been explored.*/
+    private boolean isExplored(Graph<VLabel, ELabel>.Vertex v) {
+        return _explored.get(v.getId());
+    }
+
+    /** Sets that V has been explored. */
+    private void explore(Graph<VLabel, ELabel>.Vertex v) {
+        _explored.set(v.getId());
+    }
+
+    /** The Vertex (if any) that terminated the last traversal. */
+    protected Graph<VLabel, ELabel>.Vertex _finalVertex;
+    /** The Edge (if any) that terminated the last traversal. */
+    protected Graph<VLabel, ELabel>.Edge _finalEdge;
+    /** The last graph traversed. */
+    protected Graph<VLabel, ELabel> _graph;
+    /** Element at i true iff Vertex/edge i has been traversed. */
+    private BitSet _marks = new BitSet();
+    /** Element at i ture iff all of the edges of Vertex i have been traveresed. */
+    private BitSet _explored = new BitSet();
+
+
+    /** The fringe interface. */
+    private interface Fringe<T> {
+
+        /** Push V onto the stack I am representing. */
+        public abstract void push(T v);
+
+        /** Returns the first element of the stack without removing it.*/
+        public abstract T peek();
+
+        /** Return and remove first element of the stack.*/
+        public abstract T pop();
+
+        /** Gets rid of all of my elements.*/
+        public void clear();
+    }
+
+    /** Last in first out fringe. */
+    public class LIFO<T> implements Fringe<T> {
+        
+        /** A new LIFO fringe.*/
+        LIFO() {
+            _stack = new ArrayDeque<T>();
+        }
+
+        @Override
+        public void push(T v) {
+            _stack.push(v);
+        }
+
+        @Override
+        public T peek() {
+            return _stack.peek();
+        }
+
+        @Override
+        public T pop() {
+            return _stack.pop();
+        }
+
+        @Override
+        public void clear() {
+            _stack.clear();
+        }
+
+        /** Queue holding our stack.*/
+        private ArrayDeque<T> _stack;
+    }
+
+    /** First in first out fringe. */
+    public class FIFO<T> implements Fringe<T> { 
+        
+        /** A few FIFO fringe.*/
+        FIFO () {
+            _stack = new ArrayDeque<T>();
+        }
+
+        @Override
+        public void push(T v) {
+            _stack.push(v);
+        }
+        
+        @Override
+        public T peek() {
+            return _stack.peekLast();
+        }
+        
+        @Override
+        public T pop() {
+            return _stack.pollLast();
+        }
+        
+        @Override
+        public void clear() {
+            _stack.clear();
+        }
+
+        /** Queue holding our stack.*/
+        private ArrayDeque<T> _stack;
+    } 
+
+    /** Fringe ordered by comparator.*/
+    public class OrderedFringe <T> implements Fringe<T> {
+        
+        /** Creates a new ordered fringe. */
+        OrderedFringe(Comparator<? super T> c) {
+            _stack = new PriorityQueue<T>(11, c);
+        }
+        
+        @Override
+        public void push(T v) {
+            _stack.add(v);
+        }
+
+        @Override
+        public T peek() {
+            return _stack.peek();
+        }
+
+        @Override
+        public T pop() {
+            return _stack.poll();
+        }
+
+        @Override
+        public void clear() {
+            _stack.clear();
+        }
+
+        /** Queue holding our stack.*/
+        private PriorityQueue<T> _stack;
+    }
+
+    /** The fringe. Particular queue implementation changes based on traversal. */
+    protected Fringe<Graph<VLabel, ELabel>.Vertex> _fringe;
+}

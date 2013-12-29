@@ -1,0 +1,185 @@
+package jump61;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import static jump61.Color.*;
+
+/** A Jump61 board state.
+ *  @author Andrew Berger
+ */
+class MutableBoard extends Board {
+
+    /** An N x N board in initial configuration. */
+    MutableBoard(int N) {
+        _N = N;
+        initBoard(N);
+        _moves = 0;
+        _previousBoards = new LinkedList<ConstantBoard>();
+    }
+
+    /** A board whose initial contents are copied from BOARD0. Clears the
+     *  undo history. */
+    MutableBoard(Board board0) {   
+        copy(board0);
+
+    }
+
+    @Override
+    void clear(int N) {
+        _N = N;
+        _moves = 0;
+        initBoard(N);
+    }
+
+    @Override
+    void copy(Board board) {
+        _N = board.size();
+        _moves = board.numMoves();
+        _squares = board.getSquares();
+    }
+
+    @Override
+    MutableBoard internalCopy() {
+        MutableBoard clone = new MutableBoard(this);
+        clone.setUndoStack(_previousBoards);
+        return clone;
+    }
+
+    @Override
+    int size() {
+        return _N;
+    }
+
+    @Override
+    int spots(int r, int c) {
+        return spots(sqNum(r, c));
+    }
+
+    @Override
+    int spots(int n) {
+        return _squares[n].spots();
+    }
+
+    @Override
+    Color color(int r, int c) {
+        return color(sqNum(r, c));
+    }
+
+    @Override
+    Color color(int n) {
+        return _squares[n].color();
+    }
+
+    @Override
+    int numMoves() {
+        return _moves;
+    }
+
+    @Override
+    int numOfColor(Color color) {
+        return 0;
+        // FIXME
+    }
+
+    @Override
+    void addSpot(Color player, int r, int c) {
+        addSpot(player, sqNum(r, c));
+    }
+
+    @Override
+    void addSpot(Color player, int n) {
+        //enforce isLegal?
+        //if not what do you do with player?
+        _previousBoards.add(new ConstantBoard(this));
+        _moves += 1;
+        _squares[n].addSpot(player);
+        if (_squares[n].isFull()) {
+            jump(n);
+        }
+    }
+
+    @Override
+    void set(int r, int c, int num, Color player) {
+        set(sqNum(r, c), num, player);
+    }
+
+    /** Adds one spot to square at R C and gives it PLAYER color. */
+    void incrementSpot(int r, int c, Color player) {
+        set(r, c, spots(r, c) + 1, player);
+        toString();
+        if (_squares[sqNum(r, c)].isFull()) {
+            jump(sqNum(r, c));
+        }
+    }
+
+    @Override
+    void set(int n, int num, Color player) {
+        _squares[n].setSpots(num);
+        _squares[n].setColor(player);
+    }
+
+    @Override
+    void setMoves(int num) {
+        assert num > 0;
+        _moves = num;
+    }
+
+    @Override
+    void undo() {
+        ConstantBoard last = _previousBoards.poll();
+        if (last != null) {
+            _N = last.size();
+            _moves =  last.numMoves();
+            _squares = last.getSquares();
+        }
+    }
+
+
+    /** Do all jumping on this board, assuming that initially, S is the only
+     *  square that might be over-full. */
+    private void jump(int S) {
+        Color spreading = color(S);
+        set(S, 1, spreading);
+        int r = row(S);
+        int c = col(S);
+        int[][] offsets = new int[][] {{-1, 0}, {1, 0}, {0, 1}, {0, -1}};
+        for (int[] offset : offsets) {
+            int mr = r + offset[0];
+            int mc = c + offset[1];
+            if (exists(mr, mc)) {
+                incrementSpot(mr, mc, spreading);
+                //got to stop this
+            } 
+        }        
+   
+    }
+
+    /** Creates and populates _squares[N]. */
+    private void initBoard(int N) {
+        _squares = new Square[N*N];
+        for (int i = 0; i < N*N; i++) {
+            _squares[i] = new Square(neighbors(i));
+        }
+    }
+
+    
+    /** Sets my undoStack to STACK */
+    public void setUndoStack(Queue<ConstantBoard> stack) {
+        _previousBoards = stack;
+    }
+    
+    @Override
+    public int getHash(int move) {
+        addSpot(whoseMove(), move);
+        int h = bhash(0);
+        undo();
+        return h;
+    }
+    
+    /** Total combined number of moves by both sides. */
+    protected int _moves;
+    /** Convenience variable: size of board (squares along one edge). */
+    private int _N;
+    /** Holds the undo stack. */
+    private Queue<ConstantBoard> _previousBoards;
+}

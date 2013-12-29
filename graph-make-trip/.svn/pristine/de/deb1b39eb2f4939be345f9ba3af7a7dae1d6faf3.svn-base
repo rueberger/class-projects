@@ -1,0 +1,98 @@
+package trip;
+
+import java.util.Scanner;
+
+import graph.Graph;
+import graph.UndirectedGraph;
+import graph.Weighted;
+import graph.Weightable;
+
+public class graphBuilder {
+
+    public Graph<Place, Route> buildGraph(String mapFileName, PrintWriter err) {
+        _err = err;
+    }
+
+    /** Returns true iff LINE is a properly formatted location. */
+    private boolean isLocation(String line) {
+        Scanner loc = new Scanner(line);
+        String target = loc.next();
+        if (target.equals("L")) {
+            //check this 
+            String unchecked = loc.next();
+            if (hasNextFloat() && hasNextFloat()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /** Returns true iff LINE is a properly formatted distance. */
+    private boolean isDistance(String line) {
+        Scanner dist = new Scanner(line);
+        String target = dist.next();
+        if (target.equals("D")) {
+            String 
+        }
+    }
+
+    /** Send an error message to the user formed from arguments FORMAT
+     *  and ARGS, whose meanings are as for printf. */
+    private void reportError(String format, Object... args) {
+        _err.print("Error: ");
+        _err.printf(format, args);
+        _err.println();
+    }
+
+    private class Place extends Weightable {
+        Place(String name, float x, float y) {
+            _name = name;
+            _x = x;
+            _y = y;
+        }
+        
+        @Override
+        double weight() {
+            return 
+        }
+
+        @Override
+        void setWeight(double w) {
+            _weight = w;
+        }
+
+        /** Gets my current name.*/
+        String name() {
+            return _name;
+        }
+
+        int[] coords() {
+            return new int[] {_x, _y};
+        }
+
+        /** The weight.*/
+        double _weight;
+        /** The name of this label.*/
+        String _name;
+        /** The x coordinate */
+        float _x;
+        /** The y coordinate*/
+        float _y;
+    }
+
+    private class Route extends Weighted {
+        Route(double d) {
+            _weight = d;
+        }
+
+        @Override 
+        double weight() {
+            return _weight;
+        }
+
+        double _weight;
+    }
+
+    private PrintWriter _err;
+
+}

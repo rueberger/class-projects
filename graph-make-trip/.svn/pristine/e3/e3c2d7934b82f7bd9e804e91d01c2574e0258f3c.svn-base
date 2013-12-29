@@ -1,0 +1,15 @@
+package make;
+
+public class GraphBuilder {
+
+    GraphBuilder(Scanner makeFile, PrintWriter err) {
+        _make = makeFile;
+    }
+
+    
+    
+    /** The make file we're parsing. */
+    Scanner _make;
+    /** The standard error output.*/
+    PrintWriter_err;
+}

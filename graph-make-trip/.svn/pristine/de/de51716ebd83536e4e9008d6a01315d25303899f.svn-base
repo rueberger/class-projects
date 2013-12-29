@@ -1,0 +1,78 @@
+package graph;
+
+import org.junit.Test;
+import ucb.junit.textui;
+import static org.junit.Assert.*;
+
+public class UndirectedGraphTesting {
+
+
+    @Test
+    public void checkAdd() {
+        UndirectedGraph<Integer, Integer> u = new UndirectedGraph<Integer, Integer>();
+        UndirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        UndirectedGraph<Integer, Integer>.Vertex w = u.add(15);
+        UndirectedGraph<Integer, Integer>.Edge z  = u.add(v, w, 5);
+        assertEquals("V value is wrong", 10, v.getLabel());
+        assertEquals("w value is wrong", 15, w.getLabel());
+        assertEquals("Edge exists", true, u.contains(v, w, 5));
+    }
+
+    @Test
+    public void CheckDegree() {
+        UndirectedGraph<Integer, Integer> u = new UndirectedGraph<Integer, Integer>();
+        UndirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        UndirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        UndirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        UndirectedGraph<Integer, Integer>.Vertex y = u.add(25);
+        UndirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        UndirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        UndirectedGraph<Integer, Integer>.Edge vy = u.add(v, y, 5);
+        UndirectedGraph<Integer, Integer>.Edge xy = u.add(x, y, 5);
+        assertEquals("Wrong degree", 3, u.degree(v));
+        assertEquals("Wrong degree", 1, u.degree(w));
+        assertEquals("Wrong degree", 2, u.degree(y));
+        assertEquals("Wrong degree", 2, u.degree(x));
+    }
+
+    @Test
+    public void checkEdgeRemoval() {
+        UndirectedGraph<Integer, Integer> u = new UndirectedGraph<Integer, Integer>();
+        UndirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        UndirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        UndirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        UndirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        UndirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        assertEquals("Edge exists", true, u.contains(v, w, 5));
+        u.remove(vw);
+        assertEquals("Edge has been removed", false, u.contains(v, w, 5));
+        assertEquals("Edge exists", true, u.contains(v, x, 5));
+        u.remove(vx);
+        assertEquals("Edge has been removed", false, u.contains(v, x, 5));   
+    }
+
+    @Test
+    public void checkVertexRemoval() {
+        UndirectedGraph<Integer, Integer> u = new UndirectedGraph<Integer, Integer>();
+        UndirectedGraph<Integer, Integer>.Vertex v = u.add(10);
+        UndirectedGraph<Integer, Integer>.Vertex w = u.add(15);   
+        UndirectedGraph<Integer, Integer>.Vertex x = u.add(20);
+        UndirectedGraph<Integer, Integer>.Edge vw = u.add(v, w, 5);
+        UndirectedGraph<Integer, Integer>.Edge vx = u.add(v, x, 5); 
+        assertEquals("Edge exists", true, u.contains(v, w, 5));
+        assertEquals("Edge exists", true, u.contains(v, x, 5));
+        assertEquals("2 Edges", 2, u.degree(v));
+        assertEquals("2 edges exist", 2, u.edgeSize());
+        assertEquals("3 vertices exist", 3, u.vertexSize());
+        u.remove(v);
+        assertEquals("Now unconnected", 0, w.degree());
+        assertEquals("Now unconnected", 0, x.degree());
+        assertEquals("No edges exist", 0 , i.edgeSize());
+        assertEquals("2 vertices exist", 2 , u.vertexSize());
+    }
+
+
+    
+
+
+}

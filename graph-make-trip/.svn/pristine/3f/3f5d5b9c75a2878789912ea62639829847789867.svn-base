@@ -1,0 +1,41 @@
+package trip;
+
+/** The VLabel for trip.
+ *  @author Andrew Berger*/
+public class Place extends Weightable {
+    /** A new place of NAME at X, Y.*/
+    Place(String name, float x, float y) {
+        _name = name;
+        _x = x;
+        _y = y;
+    }
+    
+    @Override
+    double weight() {
+        return _weight;
+    }
+    
+    @Override
+    void setWeight(double w) {
+        _weight = w;
+    }
+
+    /** Gets my current name.*/
+    String name() {
+        return _name;
+    }
+    
+    /** Returns the coords I'm at.*/
+    int[] coords() {
+        return new int[] {_x, _y};
+    }
+    
+    /** The weight.*/
+    double _weight;
+    /** The name of this label.*/
+    String _name;
+    /** The x coordinate */
+    float _x;
+    /** The y coordinate*/
+    float _y;
+}

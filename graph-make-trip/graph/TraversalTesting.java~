@@ -1,0 +1,18 @@
+package graph;
+
+import org.junit.Test;
+import ucb.junit.textui;
+import static org.junit.Assert.*;
+
+public class TraversalTesting {
+
+    public DirectedGraph<Integer, Integer> getTestGraph() {
+        DirectedGraph<Integer, Integer> d = new DirectedGraph<Integer, Integer>();
+        DirectedGraph<Integer, Integer>.Vertex v = d.add(5);
+        DirectedGraph<Integer, Integer>.Vertex w = d.add(5);
+        DirectedGraph<Integer, Integer>.Vertex x = d.add(5);
+        DirectedGraph<Integer, Integer>.Vertex y = d.add(5);
+        DirectedGraph<Integer, Integer>.Vertex z = d.add(5);
+    }
+    
+}

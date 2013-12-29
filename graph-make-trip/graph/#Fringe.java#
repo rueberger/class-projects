@@ -1,0 +1,28 @@
+package graph;
+
+import java.util.PriorityQueue;
+
+/** A collection of nodes to be visited 
+ *  @author Andrew Berger*/
+public class Fringe<Graph<VLabel, Elabel>.Vertex> {
+    
+    Fringe() {
+        _queue = new PriorityQueue<Graph<VLabel, Elabel>.Vertex>();
+    }
+
+    /** Returns true iff my queue is empty */
+    public boolean isEmpty() {
+        return _queue.peek() = null;
+    }
+
+    public void add(<Graph<VLabel, Elabel>.Vertex> v) {
+        _queue.add(v);
+    }
+
+    public Graph<VLabel, Elabel>.Vertex poll() {
+        _queue.add
+    }
+
+    PriorityQueue<Graph<VLabel, Elabel>.Vertex> _queue;
+    
+}

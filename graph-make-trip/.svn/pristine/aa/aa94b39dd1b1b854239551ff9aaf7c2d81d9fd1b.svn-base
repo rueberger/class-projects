@@ -1,0 +1,66 @@
+package graph;
+
+import java.util.List;
+import java.util.ArrayList;
+
+/** An adjacency matrix implementation.
+ *  Used by directed and undirected
+ * @author Andrew Berger
+ */
+public class AdjMat<Vertex, Edge> {
+
+    /** Constructor for our adjMatrix. Initially size zero.*/
+    AdjMat(boolean undirected) {
+        _adj = new ArrayList<List<Integer>>();
+        _vertices = new ArrayList<Vertex>();
+        _edges = new ArrayList<List<Edge>>();
+        _undirected = undirected;
+    }
+
+    
+    /** Adds an empty vertex LABEL to me with no incident edges.*/
+    public void addVertex(VLabel label) {
+        //should be protected?
+        Vertex v = new Vertex(label);
+        increaseSize(1);
+        //reminder you were working here before dinner
+    }
+
+    /** Adds NUM new spots to _ADJ, initally all zero.
+     *  Ensures _ADJ is square 
+     *  Does the same to _EDGES and _VERTICES*/
+    private increaseSize(int num) {
+        int[] addToExisting = new int[num];
+        int[] addToNew = new int[size() + num];
+        //initialized to null?
+        Edge[] eaddToExisting = new Edge[num];
+        Edge[] eaddToNew = new Edge[size() + num];
+        Vertex[] vaddToExisting = new Vertex[num];
+        for (int k = 0; k < size(); k++) {
+            _adj.get(k).addAll(addToExisting);
+            _edges.get(k).addAll(eaddToExisting);
+        }
+        for (int i = 0; i < num; i++) {
+            List<Integer> row = new ArrayList<Integer>();
+            List<Edge> erow = new ArrayList<Edge>();
+            _adj.add(row.addAll(addToNew));
+            _edges.add(erow.addAll(eaddToNew));
+        }
+        _vertices.addAll(vaddToExisting);
+    }
+
+    /** Returns the current size.*/
+    private int size() {
+        //add some assertions here
+        return _adj.size();
+    }
+    
+    /** Holds our dynamically resizable adjacency mat. */
+    private List<List<Integer>> _adj;
+    /** Holds vertice labels. Is of dimension SIZE.*/
+    private List<Vertex> _vertices;
+    /** Holds edge labels. Each list of dimension SIZE. */
+    private List<List<Edge>> _edges;
+    /** True iff I am implementing an undirected graph.*/
+    private boolean _undirected;
+}

@@ -1,0 +1,268 @@
+package trip;
+
+import java.util.Scanner;
+import java.util.HashSet;
+
+import java.io.FileReader;
+import java.io.InputStreamReader;
+
+
+import graph.Graph;
+import graph.UndirectedGraph;
+import graph.Weighted;
+import graph.Weightable;
+
+/** A class for assembling graphs from map data.
+ *  @author Andrew Berger */
+public class GraphBuilder {
+
+    GraphBuilder(String mapFileName, PrintWriter err) {
+        _map = new Scanner(new FileReader(new File(mapFileName)));
+        //idk about the error output
+        _err = err;
+        _locations = new HashMap<String, Graph<Place, Route>.Vertex>();
+    }
+
+    public Graph<Place, Route> buildGraph() {
+        //handles new lines??????
+        int place = 0;
+        PlaceBuilder location = null;
+        RouteBuilder distance = null;
+        ArrayList<String> orientations = new ArrayList<String>();
+        orientations.add("NS");
+        orientations.add("EW");
+        orientations.add("WE");
+        orientations.add("SN");
+        UndirectedGraph<Place, Route> g = new UndirectedGraph<Place, Route>();
+        try {
+            while (_map.hasNext()) {
+                if (location != null) {
+                    switch (place) {
+                    case 1:
+                        String name = _map.next();
+                        if (_locations.get(name == null)) {
+                            location.setName(name);
+                            place += 1;
+                        } else {
+                            throw new MapFormatException(name + " has already been added.");
+                        }
+                        break;
+                    case 2:
+                        if (_map.hasNextFloat()) {
+                            location.setX(_map.nextFloat());
+                            place += 1;
+                        } else {
+                            throw new MapFormatException("Float expected");
+                        }
+                        break;
+                    case 3:
+                        if (_map.hasNextFloat()) {
+                            location.setY(_map.nextFloat());
+                            _locations.put(location.name(), location.build());
+                            location = null;
+                       } else {
+                            throw new MapFormatException("Float expected");
+                        }
+                        break;
+                    default:
+                        throw new MapFormatException("Something went wrong");
+                    }
+                } else if (distance != null) {
+                    switch (place) {
+                    case 1:
+                        String from = _map.next();
+                        if (_locations.get(from) != null) {
+                            distance.setStart(from);
+                            place += 1;
+                        } else {
+                            throw new MapFormatException(from + " is not an existing location");
+                        }
+                        break;
+                    case 2:
+                        String name = _map.next();
+                        distance.setName(name);
+                        place += 1;
+                        break;
+                    case 3:
+                        if (_map.hasNextFloat()) {
+                            distance.setDistance(_map.nextFloat());
+                            place += 1;
+                        } else {
+                            throw new MapFormatException("float expected");
+                        }
+                        break;
+                    case 4:
+                        String direction = _map.next();
+                        if (orientations.contain(direction)) {
+                            distance.setDirection(direction);
+                            place += 1;
+                        } else {
+                            throw new MapFormatException(direction + " is malformed");
+                        }
+                        break;
+                    case 5:
+                        String to = _map.next();
+                        if (_locations.get(to) != null) {
+                            distance.setEnd(to);
+                            distance.build();
+                            distance = null;
+                        } else {
+                            throw new MapFormatException(to + " is not an existing location.");
+                        }
+                    }
+                } else {
+                    place = 0;
+                    String target = _map.next();
+                    switch (target) {
+                    case "L":
+                        location = new PlaceBuilder(g);
+                        place += 1;
+                    case "R":
+                        distance = new RouteBuilder(g);
+                        place += 1;
+                    default:
+                        throw new MapFormatException("L or R expected");
+                    }
+                }
+            }
+            if (location != null || distance != null) {
+                throw new MapFormatException("EOF while processing entry");
+            }
+        } catch (MapFormatException e) {
+            //do something with the error
+            //(probably report and System.exit(1);
+        }
+    }
+
+    
+    /** Returns true iff LINE is a properly formatted distance. */
+    private boolean isDistance(String line) {
+        Scanner dist = new Scanner(line);
+        String target = dist.next();
+        if (target.equals("D")) {
+            if (dist.hasNext()) {
+                String from = dist.next();
+                if (_declared.contains(from)) {
+                    if (dist.hasNext()) {
+                        String unchecked = dist.next();
+                        if (dist.hasNextFloat()) {
+                            float l = dist.nextFloat();
+                            if (dist.hasNext()) {
+                                String orient = dist.next();
+                                if (orientations.contains(orient) && dist.hasNext()) {
+                                    String to = dist.next();
+                                    if (_declared.contains(to)) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+        return false;
+    }
+
+    private class PlaceBuilder {
+        /** A new location builder on G. */
+        PlaceBuilder(Graph<Place, Route> g) {
+            _g = g;
+        }
+        
+        /** Sets _name to NAME.*/
+        public void setName(String name) {
+            _name = name;
+        }
+        
+        /** Sets _x to X.*/
+        public void setX(float x) {
+            _x = x;
+        }
+
+        public void setY(float y) {
+            _y = y;
+        }
+
+        public Graph<Place, Route>.Vertex build() {
+            Place here = new Place(_name, _x, _y);
+            return _g.add(Place);
+        }
+
+        /** The graph we're building on. */
+        Graph<Place, Route> _g;
+        /** The name of this location. */
+        String _name;
+        /** The x coordinate. */
+        float _x;
+        /** The y coordinate. */
+        float _y;
+    }
+
+    private class RouteBuilder {
+        RouteBuilder(Graph<Place, Route> g) {
+            _g = g;
+        }
+
+        public void setStart(String start) {
+            _from = start;
+        }
+
+        public void setEnd(String end) {
+            _to = end;
+        }
+        
+        public void setName(String name) {
+            _name = name;
+        }
+
+        public void setDistance(float dist) {
+            _dist = dist;
+        }
+
+        public void setDirection(String dir) {
+            _direction = dir;
+        }
+        
+        public void build() {
+            Route path = new Route(_name, _direction,  _dist);
+            Graph<Place, Route>.Edge r = _g.add(_locations.get(from), _locations.get(to), path);
+        }
+
+        Graph<Place, Route> _g;
+        /** Starting location. */
+        String _from;
+        /** Ending location. */
+        String _to;
+        /** Route name.*/
+        String _name;
+        /** My direction. */
+        String _direction;
+        /** Distance of route. */
+        float _dist;
+    }
+
+    
+    /** Returns the vertice of that name or null if it doesn't exist.*/
+    public Graph<Place, Route>.Vertex getVertex(String name) {
+        return _locations.get(name);
+    }
+        
+        /** Send an error message to the user formed from arguments FORMAT
+         *  and ARGS, whose meanings are as for printf. */
+    private void reportError(String format, Object... args) {
+        _err.print("Error: ");
+        _err.printf(format, args);
+        _err.println();
+    }    
+    
+    /** A scanner over our map data.*/
+    private Scanner _map;
+    /** The set of declared locations.*/
+    private HashMap<String, Graph<Place, Route>.Vertex> _locations;
+    /** The error output. */
+    private PrintWriter _err;
+    
+    
+}

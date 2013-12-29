@@ -1,0 +1,167 @@
+package trip;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
+
+import java.util.Scanner;
+
+
+import graph.Graph;
+import graph.UndirectedGraph;
+import graph.Traversal;
+import graph.Weighted;
+import graph.Weightable;
+
+/** Initial class for the 'trip' program.
+ *  @author Andrew Berger 
+ */
+public final class Main {
+
+    /** Entry point for the CS61B trip program.  ARGS may contain options
+     *  and targets:
+     *      [ -m MAP ] [ -o OUT ] [ REQUEST ]
+     *  where MAP (default Map) contains the map data, OUT (default standard
+     *  output) takes the result, and REQUEST (default standard input) contains
+     *  the locations along the requested trip.
+     */
+    public static void main(String... args) {
+        String mapFileName;
+        String outFileName;
+        String requestFileName;
+
+        mapFileName = "Map";
+        outFileName = requestFileName = null;
+
+        int a;
+        for (a = 0; a < args.length; a += 1) {
+            if (args[a].equals("-m")) {
+                a += 1;
+                if (a == args.length) {
+                    usage();
+                } else {
+                    mapFileName = args[a];
+                }
+            } else if (args[a].equals("-o")) {
+                a += 1;
+                if (a == args.length) {
+                    usage();
+                } else {
+                    outFileName = args[a];
+                }
+            } else if (args[a].startsWith("-")) {
+                usage();
+            } else {
+                break;
+            }
+        }
+
+        if (a == args.length - 1) {
+            requestFileName = args[a];
+        } else if (a > args.length) {
+            usage();
+        }
+
+        if (requestFileName != null) {
+            try {
+                System.setIn(new FileInputStream(requestFileName));
+            } catch  (FileNotFoundException e) {
+                System.err.printf("Could not open %s.%n", requestFileName);
+                System.exit(1);
+            }
+        }
+
+        if (outFileName != null) {
+            try {
+                System.setOut(new PrintStream(new FileOutputStream(outFileName),
+                                              true));
+            } catch  (FileNotFoundException e) {
+                System.err.printf("Could not open %s for writing.%n",
+                                  outFileName);
+                System.exit(1);
+            }
+        }
+
+        trip(mapFileName);
+    }
+
+    /** Print a trip for the request on the standard input to the stsndard
+     *  output, using the map data in MAPFILENAME.
+     */
+    private static void trip(String mapFileName) {
+        GraphBuilder mapParser = new GraphBuilder(mapFileName, _err);
+        Scanner requests = new Scanner(new InputStreamReader(System.in));
+        
+        // find the vertices
+        // call the search function 
+        Graph<Place, Route> map = mapParser.buildGraph();
+    }
+    
+    /** Visits DESTINATIONS on MAP and prints our directions. */
+    private static void makeTrip(Graph<Place, Route> map, List<Graph<Place, Route>.Vertex> destinations) {
+        List<Graph<Place, Route>.Edge> directions =
+            new ArrayList<Graph<Place, Route>.Edge>();
+        for (int ind = 1; ind < directions.size(); ind++) {
+            directions.addAll(shortestPath(map, destinations.get(ind - 1), destinations.get(ind), _h));
+        }
+        int step = 1;
+        Graph<Place, Route>.edge first = directions.get(0);
+        _out.printf("From %s:%n%n", destinations.get(0).name());
+        Graph<Place, Route>.Vertex last = destinations.get(0);
+        String lastRoad = first.getLabel().name();
+        String lastDir = ""; 
+        if (first.getV0() == last) {
+            lastDir = first.getLabel().compass();
+        } else {
+            lastDir = first.getLabel().compassReverse();
+        }
+        double lastWeight = first.getLabel().weight();
+        for (Graph<Place, Route>.Edge e : directions) {
+            //this is mostlyy the right idea but not quite there 
+            //run through what last does in your head bro
+            String currDir = "";
+            String currRoad = e.getLabel().name();
+            Double currWeight = e.getLabel().weight();
+            if (e.getV0() == last) {
+                currDir = e.getLabel().compass();
+            } else {
+                currDir = e.getLabel().compassReverse();
+            }            
+            if (currRoad.equals(lastRoad) && currDir.equals(lastDir)) {
+                lastWeight += e.getLabel().weight();
+            }
+            else {
+                _out.printf("%d. Take %s %s for %.1f miles.%n", step, lastRoad, lastDir, lastWeight);
+                last = e.getV(last);
+                step += 1;
+                lastRoad = currRoad;
+                lastDir = currDir;
+                lastWeight = currWeight;
+            }
+        }
+        _out.flush();
+    }
+
+    /** Returns DIR with successive visits to the same road collapsed. */
+    private static List<Graph<Place, Route>.Edge> processDirections(List<Graph<Place, Route>.Edge> dir, Graph<Place, Route>.Vertex start) {
+        Graph<Place, Route>.Vertex last = start;
+        for (int ind = 0; ind < dir.size(); ind++) {
+            
+        }
+    }
+
+    /** Print a brief usage message and exit program abnormally. */
+    private static void usage() {
+        // FILL THIS IN
+        System.exit(1);
+    }
+
+    private PrintWriter _err = new OutputStreamWriter(System.err);
+
+    private Distancer<Place> _h = new EuclideanDistancer<Place>();
+
+    private PrintWriter _out = new OutputStreamWriter(System.out);
+}

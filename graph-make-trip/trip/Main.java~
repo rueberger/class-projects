@@ -1,0 +1,208 @@
+package trip;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
+import java.io.InputStreamReader;
+
+import java.util.Scanner;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.regex.Pattern;
+import java.util.HashSet;
+
+import graph.Graph;
+import graph.Graphs;
+import graph.UndirectedGraph;
+import graph.Weighted;
+import graph.Weightable;
+import graph.Distancer;
+
+/** Initial class for the 'trip' program.
+ *  @author Andrew Berger 
+ */
+public final class Main {
+
+    /** Entry point for the CS61B trip program.  ARGS may contain options
+     *  and targets:
+     *      [ -m MAP ] [ -o OUT ] [ REQUEST ]
+     *  where MAP (default Map) contains the map data, OUT (default standard
+     *  output) takes the result, and REQUEST (default standard input) contains
+     *  the locations along the requested trip.
+     */
+    public static void main(String... args) {
+        String mapFileName;
+        String outFileName;
+        String requestFileName;
+
+        mapFileName = "Map";
+        outFileName = requestFileName = null;
+
+        int a;
+        for (a = 0; a < args.length; a += 1) {
+            if (args[a].equals("-m")) {
+                a += 1;
+                if (a == args.length) {
+                    usage();
+                } else {
+                    mapFileName = args[a];
+                }
+            } else if (args[a].equals("-o")) {
+                a += 1;
+                if (a == args.length) {
+                    usage();
+                } else {
+                    outFileName = args[a];
+                }
+            } else if (args[a].startsWith("-")) {
+                usage();
+            } else {
+                break;
+            }
+        }
+
+        if (a == args.length - 1) {
+            requestFileName = args[a];
+        } else if (a > args.length) {
+            usage();
+        }
+
+        if (requestFileName != null) {
+            try {
+                System.setIn(new FileInputStream(requestFileName));
+            } catch  (FileNotFoundException e) {
+                System.err.printf("Could not open %s.%n", requestFileName);
+                System.exit(1);
+            }
+        }
+
+        if (outFileName != null) {
+            try {
+                System.setOut(new PrintStream(new FileOutputStream(outFileName),
+                                              true));
+            } catch  (FileNotFoundException e) {
+                System.err.printf("Could not open %s for writing.%n",
+                                  outFileName);
+                System.exit(1);
+            }
+        }
+
+        trip(mapFileName);
+    }
+
+    /** Print a trip for the request on the standard input to the stsndard
+     *  output, using the map data in MAPFILENAME.
+     */
+    private static void trip(String mapFileName) {
+        GraphBuilder mapParser = new GraphBuilder(mapFileName, _err);
+        Scanner requests = new Scanner(new InputStreamReader(System.in));
+        Pattern commaSpace = Pattern.compile(",\\s+");
+        requests.useDelimiter(commaSpace);
+        Graph<Place, Route> map = mapParser.buildGraph();
+        List<Graph<Place, Route>.Vertex> destinations;
+        try {
+            destinations = parseDestinations(map, requests);
+            makeTrip(map, destinations);
+        } catch (MapFormatException e) {
+            //check javaDoc and just use reportError here 
+            _err.println(e.getMessage());
+        }
+    }
+    
+    /** Visits DESTINATIONS on MAP and prints our directions. */
+    private static void makeTrip(Graph<Place, Route> map, List<Graph<Place, Route>.Vertex> destinations) {
+        List<Graph<Place, Route>.Edge> directions =
+            new ArrayList<Graph<Place, Route>.Edge>();
+        for (int ind = 1; ind < directions.size(); ind++) {
+            directions.addAll(Graphs.shortestPath(map, destinations.get(ind - 1), destinations.get(ind), new Distancer<Place>() {
+                        @Override
+                        public double dist(Place p1, Place p2) {
+                            double d1 = p1.coords()[0] - p2.coords()[0];
+                            double d2 = p1.coords()[1] - p2.coords()[1];
+                            d1 = Math.pow(d1, 2);
+                            d2 = Math.pow(d2, 2);
+                            double dotted = d1 + d2;
+                            return Math.pow(dotted, .5);
+                        }
+                    }));
+        }
+        int step = 1;
+        Graph<Place, Route>.Edge first = directions.get(0);
+        Graph<Place, Route>.Vertex last = destinations.get(0);
+        _out.printf("From %s:%n%n", last.getLabel().name());
+        String lastRoad = first.getLabel().name();
+        String lastDir = ""; 
+        if (first.getV0() == last) {
+            lastDir = first.getLabel().compass();
+        } else {
+            lastDir = first.getLabel().compassReverse();
+        }
+        double lastWeight = first.getLabel().weight();
+        for (Graph<Place, Route>.Edge e : directions) {
+            String currDir = "";
+            String currRoad = e.getLabel().name();
+            Double currWeight = e.getLabel().weight();
+            if (e.getV0() == last) {
+                currDir = e.getLabel().compass();
+            } else {
+                currDir = e.getLabel().compassReverse();
+            }            
+            if (currRoad.equals(lastRoad) && currDir.equals(lastDir)) {
+                lastWeight += e.getLabel().weight();
+            }
+            else {
+                _out.printf("%d. Take %s %s for %.1f miles.%n", step, lastRoad, lastDir, lastWeight);
+                last = e.getV(last);
+                step += 1;
+                lastRoad = currRoad;
+                lastDir = currDir;
+                lastWeight = currWeight;
+            }
+        }
+        _out.flush();
+    }
+
+    private static List<Graph<Place, Route>.Vertex> 
+        parseDestinations(Graph<Place, Route> map, Scanner requests) {
+        ArrayList<Graph<Place, Route>.Vertex> destinations = 
+            new ArrayList<Graph<Place, Route>.Vertex>();
+        List<String> requestList = new ArrayList<String>();
+        HashSet<String> reqSet = new HashSet<String>();
+        while (requests.hasNext()) {
+            requestList.add(requests.next());
+        }
+        for (String req : requestList) {
+            reqSet.add(req);
+        }
+        destinations.ensureCapacity(requestList.size());
+        for (Graph<Place, Route>.Vertex v : map.vertices()) {
+            String nodeName = v.getLabel().name();
+            if (reqSet.contains(nodeName)) {
+                int ind = destinations.indexOf(nodeName);
+                destinations.set(ind, v);
+            }
+        }
+        for (int i = 0; i < requestList.size(); i++) {
+            if (destinations.get(i) == null) {
+                throw new MapFormatException("Requests for nodes not in graph");
+            }
+        }
+        return destinations;
+    }
+
+
+
+    /** Print a brief usage message and exit program abnormally. */
+    private static void usage() {
+        // FILL THIS IN
+        System.exit(1);
+    }
+
+    /** The standard error output.*/
+    private static PrintWriter _err = new PrintWriter(System.err);
+    /** The standard output.*/
+    private static PrintWriter _out = new PrintWriter(System.out);
+}

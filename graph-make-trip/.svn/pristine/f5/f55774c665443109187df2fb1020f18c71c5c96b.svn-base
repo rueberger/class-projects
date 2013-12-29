@@ -1,0 +1,27 @@
+package make;
+
+/** The VLabel class for make.
+ *  @author Andrew Berger*/
+public class Target {
+    
+    /** A new Target at CURRTIME executing RULE.
+     *  Starts at time 1.*/
+    Target(String name, String rule, int changed) {
+        _name = name;
+        _rule = rule;
+        _lastChanged = changed;
+    }
+
+    public String execute(int currTime) {
+        _lastChanged = currTime;
+        return _rule;
+    }
+
+    /** My name.*/
+    private String _name;
+    /** Last time I was modified.*/
+    private int _lastChanged;
+    /** The rule I execute.*/
+    private String _rule;
+
+}

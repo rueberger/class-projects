@@ -1,0 +1,69 @@
+package trip;
+
+import java.util.Scanner;
+
+import graph.Graph;
+import graph.UndirectedGraph;
+import graph.Weighted;
+import graph.Weightable;
+
+public class graphBuilder {
+
+    public Graph<Place, Route> buildGraph(String mapFileName) {
+        
+    }
+
+    private boolean isLocation(String line) {
+
+    }
+
+    private class Place extends Weightable {
+        Place(String name, float x, float y) {
+            _name = name;
+            _x = x;
+            _y = y;
+        }
+        
+        @Override
+        double weight() {
+            return 
+        }
+
+        @Override
+        void setWeight(double w) {
+            _weight = w;
+        }
+
+        /** Gets my current name.*/
+        String name() {
+            return _name;
+        }
+
+        int[] coords() {
+            return new int[] {_x, _y};
+        }
+
+        /** The weight.*/
+        double _weight;
+        /** The name of this label.*/
+        String _name;
+        /** The x coordinate */
+        float _x;
+        /** The y coordinate*/
+        float _y;
+    }
+
+    private class Route extends Weighted {
+        Route(double d) {
+            _weight = d;
+        }
+
+        @Override 
+        double weight() {
+            return _weight;
+        }
+
+        double _weight;
+    }
+
+}

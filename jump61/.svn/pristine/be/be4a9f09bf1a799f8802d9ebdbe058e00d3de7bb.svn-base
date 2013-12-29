@@ -1,0 +1,185 @@
+package jump61;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+
+/** An automated Player.
+ *  @author Andrew Berger 
+ */
+class AI extends Player {
+
+    /** A new player of GAME initially playing COLOR that chooses
+     *  moves automatically.
+     */
+    AI(Game game, Color color) {
+        super(game, color);
+        _ltable = new HashMap<Integer, int[]>;
+    }
+
+    @Override
+    void makeMove() {
+        Game game = getGame();
+        Board board = getBoard();
+        int[] moves = generateMoves(board);        
+        int[] scores = new int[moves.length];
+        boolean compute = true;
+        // don't forget to set timer for compute 
+        int depth = 1;
+        while (compute) {
+            for (int i = 0; i < moves.length; i++) {
+                board = board.addSpot(_color, move);
+                scores[i] = negamax(BOT, TOP, depth, _color, board);
+            }
+            depth += 1;
+        }
+        int max_index = 0;
+        int max = BOT;
+        for (int m = 0; m < moves.length; m++) {
+            if (scores[i] > max) {
+                max = scores;
+                max_index = i;
+            }
+        }
+        game.makeMove(moves[max_index]);
+    }
+
+
+    /** Alpha-beta search with ALPHA and BETA to DEPTH.
+     *  Starts with color P and board B
+     *  Some move ordering will help
+     *  Returns the score found so far */
+    private int negamax(int alpha, int beta, int depth, Color p, Board b) {
+        if (depth == 0 || b.getWinner() != null) {
+            return quiesce(alpha, beta, p, b);
+        } 
+        int max = LOW_SCORE;
+        int[] moves = generateMoves(b);
+        for (int move : moves) {
+            b = b.addSpot(p, move);
+            int prosp = -negaMax(-beta, -alpha, depth - 1, p.opposite(), b);
+            b = b.undo()
+            int max = Math.max(max, prosp);
+            alpha = Math.max(alpha, prosp);
+            if (alpha >= beta) {
+                break;
+            }
+        }
+        addToTable(b, max, depth);
+        return max;
+    }
+
+    /** Returns a list of integers.
+     * The squares where we can add a dot 
+     * Sorts them with the hash table. */
+    private int[] generateMoves(Board b) {
+        //assumes color P always == b.whoseMove
+        ArrayList<Integer> moves = new ArrayList<Integer>();
+        Color p = b.whoseMove();
+        for (int n = 0; n < size() * size(); n++) {
+            if (b.isLegal(p, n)) {
+                moves.append(n);
+            }
+        }
+        return sortMoves(b, moves.toArray());
+    }
+
+    private int[] sortMoves(Board b, int[] moves) {
+        int[][] scoredMoves = new int[moves.length][2];
+        for (int m = 0; m < moves.length; m++) {
+            b.addSpot(b.whoseMove(), moves[m]);
+            int hash = bhash(0);
+            b.undo();
+            int hit[] = _ltable.get(hash);
+            scoredMoves[m][1] = hit[1];
+            scoredMoves[m][0] = moves[m];
+        }
+        Arrays.sort(scoredMoves, new Comparator<int[]>() {
+                @Override
+                public int compare(final int[] e1, final int[] e2) {
+                    final int t1 = e1[1];
+                    final int t2 = e2[2];
+                    return t1.compareTo(t2);
+                }
+            });
+        int result = new int[moves.length];
+        for (int k = 0; k < moves.length; k++) {
+            result[k] = scoredMoves[k][0];
+        }
+        return result;
+    }
+
+    private int[] generateJumps(Board b) {
+        ArrayList<Integer> jumps = new ArrayList<Integer>();
+        Color p = b.whoseMove();
+        for (int n = 0; n < size() * size(); n++) {
+            if (b.isLegal(p, n) & spots(n) == neighbors(n)) {
+                jumps.append(n);
+            }
+        }
+        return sortMoves(b, jumps.toArray());
+    }
+    
+    /** Returns heuristic value of board B for player P.
+     *  Higher is better for P. */
+    private int staticEval(Color p, Board b) {
+        if (b.getWinner() != null) {
+            if (b.getWinner() == p) {
+                return HIGH_SCORE;
+            } else {
+                return LOW_SCORE;
+            }
+        } else {
+            return b.numOfColor(p);
+        }
+    }
+
+    private int quiesce(int alpha, int beta, Color p, Board b) {
+        int myEval = staticEval(p, b);
+        if (myEval >= beta) {
+            return beta;
+        } else if (myEval > alpha) {
+            alpha = myEval;
+        }
+        int[] jump_moves = generateJumps(b);
+        for (int move : jump_moves) {
+            b = b.addSpot(move);
+            int score = -quiesce(-beta, -alpha, p.opposite(), b);
+            b = b.undo();
+            if (score >= beta) {
+                return beta;
+            } else if (score > alpha) {
+                alpha = score;
+            }
+        }
+        return alpha;
+    }
+
+    private void addToTable(Board b, int score, int depth) {
+        for (int o = 0; o < 4; o++) {
+            int hash_val = bhash(o);
+            if (_ltable.get(hash_val) != null & 
+                _ltable.get(hash_val) > depth) {
+                _ltable.put(hash_val, new int[] {score, depth});
+            }
+        }
+    }
+
+    /** A (very large) hashMap.
+     *  Holds the last score of hashed positions
+     *  In addition to the depth it was searched at */
+    private Map<Integer, int[]> _ltable;
+
+    /** For min max purposes. Be careful of mod arith. */
+    private int HIGH_SCORE = 1000000000;
+    /** For min max purposes. Be careful of mod arith. */
+    private int LOW_SCORE = -1000000000;
+    /** Bigger than the other one still not close to max */
+    private int TOP = 9999999999;
+    /** Smaller than the other still not close to min */
+    private int BOT = -9999999999;
+
+}
+
+

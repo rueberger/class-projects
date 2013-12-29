@@ -1,0 +1,14 @@
+package make;
+
+/** The VLabel class for make.
+ *  @author Andrew Berger*/
+public class Target {
+    
+    
+
+    /** Last time I was modified.*/
+    private int lastChanged;
+    /** The rule I execute.*/
+    private String rule;
+
+}

@@ -1,0 +1,39 @@
+package jump61;
+
+import static jump61.Color.*;
+
+/** Represents the state of a single jump61 square.
+ * Keeps track of number dots, color, and
+ * occupation number 
+ * @author Andrew Berger */
+public class Square {
+    
+    /** The default constructor.
+     * Makes an empty white square */
+    Square(int occupation) {
+        _color = WHITE;
+        _occ = occupation;
+        _dots = 0;
+    }
+
+    /** Returns true iff there are more dots than room. */
+    public boolean isFull() {
+        return _dots >= _occ;
+    }
+
+    /** Adds a dot to me. */
+    public void addDot() {
+        _dots += 1;
+    }
+    
+    /** Field holding color of THIS square. */
+    private Color _color;
+
+    /** Field holding dots on THIS square. */
+    private int _dots;
+
+    /** Field holding occupation num of THIS square. */
+    private int _occ;
+    
+
+}

@@ -1,0 +1,59 @@
+package graph;
+
+/** A vertex in a graph.
+ *  @author Andrew Berger
+ */
+public class Vertex<VLabel> {
+
+    /** A new vertex with LABEL as the value of getLabel(). */
+    protected Vertex(VLabel label) {
+        _label = label;
+        _mark = true;
+    }
+
+    /** Returns the label on this vertex. */
+    public VLabel getLabel() {
+        return _label;
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(_label);
+    }
+
+    //defined for objects anyway??
+    public int hashCode() {
+        //breaking the law of H???
+        return String.valueOf(_label).hashCode();
+    }
+
+    public boolean equals(Object obj) {
+        //this is java blasphemy???
+        if (obj == null) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceOf Vertex)) {
+            return false;
+        } else {
+            Vertex v = (Vertex) obj;
+            if (v.hashCode() == this.hashCode()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean marked() {
+        return _mark;
+    }
+
+    /** The label on this vertex. */
+    private final VLabel _label;
+    /** True iff I have been traversed.*/
+    private boolean _mark;
+    
+
+}

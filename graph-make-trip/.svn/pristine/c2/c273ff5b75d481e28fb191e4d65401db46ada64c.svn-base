@@ -1,0 +1,142 @@
+package make;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+
+import graph.DirectedGraph;
+import graph.Graph;
+
+public class GraphBuilder {
+
+    GraphBuilder(Scanner makeFile, PrintWriter err) {
+        _make = makeFile;
+    }
+
+    public Graph<Target, null> buildGraph() {
+        return assembleGraph(inputParser());
+    }
+    
+    private ArrayList<TargetBuilder> inputParser() {
+        ArrayList<TargetBuilder> targets = new ArrayList<TargetBuilder>();
+        TargetBuilder target = null;
+        int place = 0;
+        while (_make.hasNextLine()) {
+            String line = _make.nextLine();
+            if (matchesRuleFormat(line)) {
+                if (target != null) {
+                    targets.add(target);
+                }
+                String[] split = line.split("\\s+");
+                target = new TargetBuilder();
+                target.setName(split[0].substring(0, split[0].length() - 1));
+                target.setDependencies(split); 
+            } else if (!line.startsWith("#")) {
+                target.addLine(line);
+            }
+        }
+        return targets;
+    }
+
+    /** Returns true iff line is a rule header. */
+    private boolean matchesRuleFormat(String line) {
+        Scanner r = new Scanner(line);
+        boolean first = true;
+        boolean matches = false;
+        while (r.hasNext()) {
+            String name = r.next();
+            if (name.contains("=") || name.contains("#") || name.contains("\\")) {
+                return false;
+            }
+            if (first) {
+                if (!name.endsWith(":")) {
+                    return false;
+                } 
+                matches = true;
+                first = false;
+            } else if (name.contains(":")) {
+                return false;
+            }
+        }
+        return matches;
+    }
+
+    /** Adds TARGETS to our graph.
+     *  Orders TARGETS by number of dependents
+     *  If I'm not crazy circular dependence is taken care of here. */
+    private Graph<Target, null> asssembleGraph(ArrayList<TargetBuilder> targets) {
+        HashMap<String, Graph<Target, null>.Vertex> verts = new HashMap<String, Graph<Target, null>.Vertex>();
+        DirectedGraph<Target, null> d = new DirectedGraph<Target, null>();
+        Collections.sort(targets, new Comparator<TargetBuilder>() {
+                public int compare(TargetBuilder t1, TargetBuilder t2) {
+                    return t1.dependencies().size() - t2.dependencies().size();
+                }
+            });
+        for (TargetBuilder target : targets) {
+            Graph<Target, null>.Vertex curr = d.add(target.build());
+            _verts.put(target.name(), curr);
+            for (String dependent : target.dependencies()) {
+                if (_verts.get(dependent) != null) {
+                    d.add(curr, _verts.get(dependent), null);
+                } else {
+                    //throw circular dependence error 
+                }
+            }
+        }
+        return d;
+    }
+
+    private class TargetBuilder {
+        /** An empty target builder.*/
+        TargetBuilder() {
+        }
+        
+        /** Set dependcies to DEP, trimming off first entry.*/
+        public void setDependencies(String[] dep) {
+            dep = Arrays.copy(dep, 1, dep.size());
+            _dependencies = new ArrayList<String>(dep);
+        }
+
+        /** Set DATE.*/
+        public void setChangeDate(int date) {
+            _changeDate = date;
+        }
+        
+        /** Add LINE to rule.*/
+        public void addLine(String line) {
+            _rule = _rule + line;
+        }
+        
+        /** Set NAME.*/
+        public void setName(String name) {
+            _name = name;
+        }
+
+        /** Returns my name. */
+        public String name() {
+            return _name;
+        }
+
+        public ArrayList<String> dependencies() {
+            return _dependencies;
+        }
+        
+        public Target build() {
+            return new Target(_name, _rule);
+        }
+        
+        /** List of targetBuilder names i depend on.*/
+        private ArrayList<String> _dependencies;
+        /** Last time I was changed.*/
+        private int _changeDate;
+        /** Rules I execute.*/
+        private String _rule;
+        /** My name.*/
+        private String _name;
+    }
+    
+    /** The make file we're parsing. */
+    Scanner _make;
+    /** The standard error output.*/
+    PrintWriter_err;
+}

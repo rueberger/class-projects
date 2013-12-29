@@ -1,0 +1,77 @@
+package make;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class GraphBuilder {
+
+    GraphBuilder(Scanner makeFile, PrintWriter err) {
+        _make = makeFile;
+    }
+
+    private ArrayList<TargetBuilder> inputParser() {
+        TargetBuilder target = null;
+        int place = 0;
+        while (_make.hasNextLine()) {
+            String line = _make.nextLine();
+            if (matchesRuleFormat(line)) {
+                String[] split = line.split("\\s+");
+                target = new TargetBuilder();
+                target.setName(split[0].substring(0, split[0].length() - 1));
+                target.setDependencies(split); 
+            } else {
+                //add as rule to our last rule thing 
+            }
+        }
+    }
+
+    private boolean matchesRuleFormat(String line) {
+        
+    }
+    
+    private class TargetBuilder {
+        /** An empty target builder.*/
+        TargetBuilder() {
+        }
+        
+        /** Set dependcies to DEP, trimming off first entry.*/
+        public void setDependencies(String[] dep) {
+            dep = Arrays.copy(dep, 1, dep.size());
+            _dependencies = new ArrayList<String>(dep);
+        }
+
+        /** Set DATE.*/
+        public void setChangeDate(int date) {
+            _changeDate = date;
+        }
+        
+        /** set RULE.*/
+        public void setRule(String rule) {
+            _rule = rule;
+        }
+        
+        /** Set NAME.*/
+        public void setName(String name) {
+            _name = name;
+        }
+
+        /** Returns my name. */
+        public String name() {
+            return _name;
+        }
+
+        /** List of targetBuilder names i depend on.*/
+        private ArrayList<String> _dependencies;
+        /** Last time I was changed.*/
+        private int _changeDate;
+        /** Rules I execute.*/
+        private String _rule;
+        /** My name.*/
+        private String _name;
+    }
+    
+    /** The make file we're parsing. */
+    Scanner _make;
+    /** The standard error output.*/
+    PrintWriter_err;
+}

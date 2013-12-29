@@ -1,0 +1,225 @@
+package jump61;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+
+/** An automated Player.
+ *  @author Andrew Berger 
+ */
+class AI extends Player {
+
+    /** A new player of GAME initially playing COLOR that chooses
+     *  moves automatically.
+     */
+    AI(Game game, Color color) {
+        super(game, color);
+        _ltable = new HashMap<Integer, int[]>();
+    }
+
+    @Override
+    void makeMove() {
+        Game game = getGame();
+        Board board = getBoard();
+        int[] moves = generateMoves(board);        
+        int[] scores = new int[moves.length];
+        boolean compute = true;
+        int depth = 1;
+        long start = System.currentTimeMillis();
+        while (compute) {
+            search:
+            for (int i = 0; i < moves.length; i++) {
+                board.addSpot(getColor(), moves[i]);
+                scores[i] = negamax(BOT, TOP, depth, getColor(), board);
+                board.undo();
+                if (scores[i] == HIGH_SCORE) {
+                    compute = false;
+                    break search;
+                }
+            }
+            System.out.println("Depth " + depth + " took " + (System.currentTimeMillis() - start));
+            depth += 1;
+            if (depth > 4) {
+                compute = false;
+            }
+        }
+        int max_index = 0;
+        int max = BOT;
+        for (int m = 0; m < moves.length; m++) {
+            if (scores[m] > max) {
+                max = scores[m];
+                max_index = m;
+            }
+        }
+        game.makeMove(moves[max_index]);
+    }
+
+
+    /** Alpha-beta search with ALPHA and BETA to DEPTH.
+     *  Starts with color P and board B
+     *  Some move ordering will help
+     *  Returns the score found so far */
+    private int negamax(int alpha, int beta, int depth, Color p, Board b) {
+        //can make use of transposition table
+        if (depth == 0 || b.getWinner() != null) {
+            return quiesce(alpha, beta, p, b);
+        } 
+        int max = LOW_SCORE;
+        int[] moves = generateMoves(b);
+        for (int move : moves) {
+            b.addSpot(p, move);
+            int prosp = -negamax(-beta, -alpha, depth - 1, p.opposite(), b);
+            b.undo();
+            max = Math.max(max, prosp);
+            alpha = Math.max(alpha, prosp);
+            if (alpha >= beta) {
+                break;
+            }
+        }
+        addToTable(b, max, depth);
+        return max;
+    }
+
+    /** Returns a list of integers.
+     * The squares where we can add a dot 
+     * Sorts them with the hash table. */
+    private int[] generateMoves(Board b) {
+        //assumes color P always == b.whoseMove
+        ArrayList<Integer> moves = new ArrayList<Integer>();
+        Color p = b.whoseMove();
+        for (int n = 0; n < b.size() * b.size(); n++) {
+            if (b.isLegal(p, n)) {
+                moves.add(n);
+            }
+        }
+        return sortMoves(b, toPrimitiveArray(moves));
+    }
+
+
+    /** Sorts MOVES from B by entries in the hash table. 
+     *  Returns the same list, but in a better order. */
+    private int[] sortMoves(Board b, int[] moves) {
+        int[][] scoredMoves = new int[moves.length][2];
+        for (int m = 0; m < moves.length; m++) {
+            int hash = b.getHash(moves[m]);
+            int hit[] = _ltable.get(hash);
+            if (hit != null) {
+                scoredMoves[m][0] = hit[0];
+            } else {
+                scoredMoves[m][0] = 0;
+            }
+            scoredMoves[m][1] = moves[m];
+        }
+        Arrays.sort(scoredMoves, new Comparator<int[]>() {
+                @Override
+                public int compare(final int[] e1, final int[] e2) {
+                    final int score1 = e1[0];
+                    final int score2 = e2[0];
+                    return score2 - score1;
+                }
+            });
+        int result[] = new int[moves.length];
+        for (int k = 0; k < moves.length; k++) {
+            result[k] = scoredMoves[k][1];
+        }
+        return result;
+    }
+
+
+    /** Returns a list of legal moves from state B.*/
+    private int[] generateJumps(Board b) {
+        ArrayList<Integer> jumps = new ArrayList<Integer>();
+        Color p = b.whoseMove();
+        for (int n = 0; n < b.size() * b.size(); n++) {
+            if (b.isLegal(p, n) & b.spots(n) == b.neighbors(n)) {
+                jumps.add(n);
+            }
+        }
+        return sortMoves(b, toPrimitiveArray(jumps));
+    }
+    
+    /** Returns heuristic value of board B for player P.
+     *  Higher is better for P. */
+    private int staticEval(Color p, Board b) {
+        if (b.getWinner() != null) {
+            if (b.getWinner() == p) {
+                return HIGH_SCORE;
+            } else {
+                return LOW_SCORE;
+            }
+        } else {
+            return b.numOfColor(p) - b.numOfColor(p.opposite());
+        }
+    }
+
+    /** Like staticEval, but better.
+     *  Checks to make sure the opponent doesn't have
+     *  a devasting response. */
+    private int quiesce(int alpha, int beta, Color p, Board b) {
+        int myEval = staticEval(p, b);
+        if (myEval >= beta) {
+            return beta;
+        } else if (myEval > alpha) {
+            alpha = myEval;
+        }
+        int[] jump_moves = generateJumps(b);
+        for (int move : jump_moves) {
+            b.addSpot(p, move);
+            int score = -quiesce(-beta, -alpha, p.opposite(), b);
+            b.undo();
+            if (score >= beta) {
+                return beta;
+            } else if (score > alpha) {
+                alpha = score;
+            }
+        }
+        return alpha;
+    }
+
+    /** Adds the four hashes from B to our table. 
+     *  That is, if they don't already have a deeper
+     *  entry in the table. */
+    private void addToTable(Board b, int score, int depth) {
+        for (int o = 0; o < 4; o++) {
+            int hash_val = b.bhash(o);
+            if (_ltable.get(hash_val) != null & 
+                _ltable.get(hash_val)[1] > depth) {
+                _ltable.put(hash_val, new int[] {score, depth});
+            }
+        }
+    }
+
+    /** Utility function because java lacks this wtf.
+     *  Takes an ARR ayList and returns an int[]*/
+    private int[] toPrimitiveArray(ArrayList<Integer> arr) {
+        int[] prim = new int[arr.size()];
+        for (int i = 0; i < arr.size(); i++) {
+            prim[i] = arr.get(i);
+        }
+        return prim;
+    }
+    
+    @Override
+    Board getBoard() {
+        return getGame().getMutableBoard();
+    }
+
+    /** A (very large) hashMap.
+     *  Holds the last score of hashed positions
+     *  In addition to the depth it was searched at */
+    private Map<Integer, int[]> _ltable;
+
+    /** For min max purposes. Be careful of mod arith. */
+    private int HIGH_SCORE = 1000000000;
+    /** For min max purposes. Be careful of mod arith. */
+    private int LOW_SCORE = -1000000000;
+    /** Bigger than the other one still not close to max */
+    private int TOP = 2000000000;
+    /** Smaller than the other still not close to min */
+    private int BOT = -2000000000;
+
+}
+
+

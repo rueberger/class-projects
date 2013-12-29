@@ -1,0 +1,37 @@
+package trip;
+
+public class Place extends Weightable {
+        Place(String name, float x, float y) {
+            _name = name;
+            _x = x;
+            _y = y;
+        }
+        
+        @Override
+        double weight() {
+            return 
+        }
+
+        @Override
+        void setWeight(double w) {
+            _weight = w;
+        }
+
+        /** Gets my current name.*/
+        String name() {
+            return _name;
+        }
+
+        int[] coords() {
+            return new int[] {_x, _y};
+        }
+
+        /** The weight.*/
+        double _weight;
+        /** The name of this label.*/
+        String _name;
+        /** The x coordinate */
+        float _x;
+        /** The y coordinate*/
+        float _y;
+    }

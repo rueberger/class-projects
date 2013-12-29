@@ -1,0 +1,130 @@
+package graph;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+/** An adjacency matrix implementation.
+ *  Used by directed and undirected
+ * @author Andrew Berger
+ */
+public class AdjMat<Vertex, Edge> {
+
+    /** Constructor for our adjMatrix. Initially size zero.*/
+    AdjMat(boolean undirected) {
+        _adj = new ArrayList<List<Integer>>();
+        _vertices = new ArrayList<Vertex>();
+        _vertMap = new HashMap<Vertex, Integer>();
+        _edges = new ArrayList<List<Edge>>();
+        _edgeMap = new HashMap<Edge, int[]>();
+        _undirected = undirected;
+        _idIncr = 0;
+    }
+
+    
+    /** Adds an empty vertex LABEL to me with no incident edges.*/
+    public void addVertex(VLabel label) {
+        //should be protected?
+        Vertex v = new Vertex(label, _idIncr);
+        _idIncr += 1;
+        increaseSize(1);
+        _vertices.add(v);
+        _vertMap.put(v, size() - 1);
+    }
+
+    /** Adds an edge between FROM and TO with LABEL.*/
+    public void addEdge(Vertex from, Vertex to, ELabel label) {
+        //should probably throw an error
+        int fromInd = _vertMap.get(from);
+        int toInd = _vertMap.get(to);
+        Edge e = new Edge(from, to, label, _idIncr);
+        _idIncr += 1;
+        addEdge(fromInd, toInd, e);
+    }
+    
+
+    /** Internal method for making edge E between vertices FROM and TO .
+     *  Need fast mapping from vertices to indices */
+    private void addEdge(int from, int to, Edge e) {
+        _adj.get(from).set(to, 1);
+        _edges.get(from).set(to, e);
+        _edgeMap.put(e, new int[] {from, to});
+        if (undirected) {
+            _adj.get(to).set(from, 1);
+            _edges.get(to).set(from, e);
+        }
+    }
+
+    /** Removes E from me. */
+    public void removeEdge(Edge e) {
+        int[] coord = _edgeMap.get(e);
+        int from = coord[0];
+        int to = coord[1];
+        _adj.get(from).set(to, 0);
+        _edges.get(from).set(to, null);
+        _edgeMap.remove(e);
+        if (undirected) {
+            _adj.get(to).set(from, 0);
+            _edges.get(to).set(from, null);
+        }
+    }
+
+    /** Removes V and all adjacent edges.*/
+    public void removeVertex(Vertex v) {
+        //huge pain in the ass
+    }
+
+    /** Returns the edge between U and V if it exists.
+     *  Otherwise returns null.*/
+    public Edge contains(Vertex u, Vertex v) {
+        int from = _vertMap.get(u);
+        int to = _vertMap.get(v);
+        if (_adj.get(from).get(to) == 1) {
+            return _edges.get(from).get(to);
+        }
+        return null;
+    }
+
+    /** Adds NUM new spots to _ADJ, initally all zero.
+     *  Ensures _ADJ is square 
+     *  Does the same to _EDGES
+     *  IMPORTANT: Does not modify _VERTICES*/
+    private increaseSize(int num) {
+        int[] addToExisting = new int[num];
+        int[] addToNew = new int[size() + num];
+        //initialized to null?
+        Edge[] eaddToExisting = new Edge[num];
+        Edge[] eaddToNew = new Edge[size() + num];
+        for (int k = 0; k < size(); k++) {
+            _adj.get(k).addAll(addToExisting);
+            _edges.get(k).addAll(eaddToExisting);
+        }
+        for (int i = 0; i < num; i++) {
+            List<Integer> row = new ArrayList<Integer>();
+            List<Edge> erow = new ArrayList<Edge>();
+            _adj.add(row.addAll(addToNew));
+            _edges.add(erow.addAll(eaddToNew));
+        }
+    }
+
+    /** Returns the current size.*/
+    private int size() {
+        //add some assertions here
+        return _adj.size();
+    }        
+    
+    /** Holds our dynamically resizable adjacency mat. */
+    private List<List<Integer>> _adj;
+    /** Holds vertice labels. Is of dimension SIZE.*/
+    private List<Vertex> _vertices;
+    /** Fast mapping from vertice to its indice. */
+    private HashMap<Vertex, Integer> _vertMap;
+    /** Holds edge labels. Each list of dimension SIZE. */
+    private List<List<Edge>> _edges;
+    /** Fast mapping from edge to coord */
+    private HashMap<Edge, int[]> _edgeMap;
+    /** True iff I am implementing an undirected graph.*/
+    private boolean _undirected;
+    /** Increment every time a new vertex or edge is created to guarantee a unique id.*/
+    private int _idIncr;
+}
