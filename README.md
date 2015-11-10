@@ -1,4 +1,8 @@
+Note: andbberger is my previous account
+
 class-projects
 ==============
 
-Class projects from UC Berkeley CS courses
+This repo contains some class projects from two Berkeley CS courses. 
+
+
